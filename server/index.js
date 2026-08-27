@@ -21,6 +21,7 @@ import customerRoutes from './routes/customers.js'
 import scheduleRoutes from './routes/schedules.js'
 import dashboardRoutes from './routes/dashboard.js'
 import aiRoutes from './routes/ai.js'
+import adminRoutes from './routes/admin.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -41,6 +42,7 @@ app.use('/api/customers', authRequired, customerRoutes)
 app.use('/api/schedules', authRequired, scheduleRoutes)
 app.use('/api/dashboard', authRequired, dashboardRoutes)
 app.use('/api/ai', authRequired, aiRoutes)
+app.use('/api/admin', authRequired, adminRoutes)
 
 // 健康检查
 app.get('/api/health', (req, res) => {

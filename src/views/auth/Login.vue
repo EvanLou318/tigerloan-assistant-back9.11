@@ -86,6 +86,7 @@
 
         <div class="form-footer">
           <span class="footer-text">仅限授权贷款经理使用</span>
+          <span class="admin-link" @click="$router.push('/admin')">管理后台入口 →</span>
         </div>
       </div>
     </div>
@@ -327,5 +328,12 @@ async function onSubmit() {
 .footer-text {
   font-size: 12px;
   color: var(--text-tertiary);
+}
+
+.admin-link {
+  font-size: 12px;
+  color: var(--color-primary, #2E6BFF);
+  cursor: pointer;
+  margin-left: 12px;
 }
 </style>

@@ -101,6 +101,20 @@ const routes = [
     component: () => import('../views/profile/Index.vue'),
     meta: { title: '我的', requiresAuth: true, tabbar: true },
   },
+  // ---------- 管理后台（桌面端） ----------
+  {
+    path: '/admin',
+    component: () => import('../views/admin/Layout.vue'),
+    meta: { title: '管理后台', requiresAuth: true, admin: true },
+    children: [
+      { path: '', redirect: '/admin/dashboard' },
+      { path: 'dashboard', name: 'AdminDashboard', component: () => import('../views/admin/Dashboard.vue'), meta: { title: '数据看板', requiresAuth: true, admin: true } },
+      { path: 'customers', name: 'AdminCustomers', component: () => import('../views/admin/Customers.vue'), meta: { title: '客户管理', requiresAuth: true, admin: true } },
+      { path: 'products', name: 'AdminProducts', component: () => import('../views/admin/Products.vue'), meta: { title: '产品管理', requiresAuth: true, admin: true } },
+      { path: 'schedules', name: 'AdminSchedules', component: () => import('../views/admin/Schedules.vue'), meta: { title: '日程管理', requiresAuth: true, admin: true } },
+      { path: 'users', name: 'AdminUsers', component: () => import('../views/admin/Users.vue'), meta: { title: '用户管理', requiresAuth: true, admin: true } },
+    ],
+  },
 ]
 
 const router = createRouter({
