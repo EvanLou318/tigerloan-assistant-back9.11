@@ -247,7 +247,7 @@ import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showSuccessToast, showToast } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
-import { mockASR, mockVoiceExtractCustomer } from '../../mock/data'
+import { asr as asrApi, extractCustomerFromVoice } from '../../api/ai'
 
 const router = useRouter()
 const store = useCustomerStore()
@@ -320,12 +320,12 @@ async function stopRecord() {
   voiceStep.value = 'transcribing'
 
   // 1. ASR 语音转文字
-  const asr = await mockASR()
-  transcript.value = asr.text
+  const asrRes = await asrApi()
+  transcript.value = asrRes.text
   voiceStep.value = 'analyzing'
 
   // 2. 大模型自动识别资料类型并提取字段
-  const result = await mockVoiceExtractCustomer(asr.text)
+  const result = await extractCustomerFromVoice(asrRes.text)
   recognizedTypes.value = result.recognizedTypes || []
   aiSummary.value = result.summary || ''
   aiConfidence.value = {}
@@ -414,13 +414,13 @@ function confirmVoice() {
 }
 
 /* ============ 建档公共逻辑 ============ */
-function submitCustomer(data) {
+async function submitCustomer(data) {
   // 检查是否已存在相同手机号的客户
   const phone = (data.phone || '').replace(/\s/g, '')
   const existing = store.customers.find((c) => c.phone.replace(/\s/g, '') === phone)
   if (existing) {
     showToast('该手机号已存在客户档案，已为你更新信息')
-    store.updateCustomer(existing.id, {
+    await store.updateCustomer(existing.id, {
       name: data.name,
       gender: data.gender || existing.gender,
       age: Number(data.age) || existing.age,
@@ -436,8 +436,8 @@ function submitCustomer(data) {
   }
 
   saving.value = true
-  setTimeout(() => {
-    const newCustomer = {
+  try {
+    const created = await store.addCustomer({
       name: data.name,
       phone,
       gender: data.gender || '未知',
@@ -448,30 +448,14 @@ function submitCustomer(data) {
       remark: data.remark || '',
       employer: data.employer || '',
       monthlyIncome: Number(data.monthlyIncome) || 0,
-      // 后续材料补充字段，初始为空
-      idCard: '',
-      maritalStatus: '',
-      education: '',
-      housingFundBase: 0,
-      position: '',
-      totalDebt: 0,
-      creditCardUsage: 0,
-      queryCount1m: 0,
-      queryCount3m: 0,
-      queryCount6m: 0,
-      maxOverdueMonths: 0,
-      propertyValue: 0,
-      hasMortgage: false,
-      carValue: 0,
-      expectedAmount: 0,
-      expectedRate: 0,
-      materials: [],
-    }
-    const created = store.addCustomer(newCustomer)
+    })
     saving.value = false
     showSuccessToast('客户档案创建成功')
     setTimeout(() => router.replace(`/customers/${created.id}`), 800)
-  }, 500)
+  } catch (err) {
+    saving.value = false
+    showToast(err.message || '创建失败，请重试')
+  }
 }
 </script>
 

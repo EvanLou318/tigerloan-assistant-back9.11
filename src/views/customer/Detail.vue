@@ -441,7 +441,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast, showConfirmDialog } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
@@ -451,6 +451,15 @@ const route = useRoute()
 const router = useRouter()
 const store = useCustomerStore()
 const scheduleStore = useScheduleStore()
+
+// 数据加载（覆盖直接刷新详情页的场景）
+onMounted(async () => {
+  try {
+    await store.loadCustomers()
+    await store.loadSimulations(route.params.id)
+    await scheduleStore.loadSchedules()
+  } catch (e) { /* 拦截器已提示 */ }
+})
 
 const customer = computed(() => store.getCustomerById(route.params.id))
 const simulations = computed(() => store.getSimulationsByCustomerId(route.params.id))

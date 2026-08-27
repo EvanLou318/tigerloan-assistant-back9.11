@@ -10,8 +10,13 @@ dist-check/
 vite.config.js.timestamp-*
 
 # 本地环境
+.env
 .env.local
 .env.*.local
+
+# 后端运行时数据（SQLite 库与上传文件）
+server/data/
+server/uploads/
 
 # 日志
 logs/

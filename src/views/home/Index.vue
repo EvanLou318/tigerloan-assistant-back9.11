@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
@@ -96,6 +96,11 @@ const router = useRouter()
 const authStore = useAuthStore()
 const scheduleStore = useScheduleStore()
 const showMethodSheet = ref(false)
+
+// 从后端拉取最新日程（首页展示今日预览）
+onMounted(() => {
+  scheduleStore.loadSchedules(true)
+})
 
 const userInfo = authStore.userInfo
 

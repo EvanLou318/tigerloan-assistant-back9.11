@@ -150,7 +150,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
 import { useProductStore } from '../../stores/product'
-import { mockLLMMatch } from '../../mock/data'
+import { matchProducts } from '../../api/ai'
 
 const route = useRoute()
 const router = useRouter()
@@ -185,7 +185,7 @@ async function runMatch() {
     loadStep.value++
   }, 600)
 
-  const result = await mockLLMMatch(customer.value, productStore.products)
+  const result = await matchProducts(customer.value, productStore.products)
   clearInterval(stepInterval)
   loadStep.value = 4
   await new Promise(r => setTimeout(r, 500))
@@ -208,7 +208,11 @@ function onShareSelect(action) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 先确保客户与产品数据已从后端加载（覆盖直接刷新进入本页的场景）
+  try {
+    await Promise.all([customerStore.loadCustomers(), productStore.loadProducts(true)])
+  } catch (e) { /* 拦截器已提示 */ }
   if (customer.value) {
     runMatch()
   }

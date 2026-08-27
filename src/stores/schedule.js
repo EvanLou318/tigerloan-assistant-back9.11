@@ -1,11 +1,31 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { mockSchedules } from '../mock/data'
+import {
+  fetchSchedules,
+  createSchedule,
+  updateSchedule as updateScheduleApi,
+  deleteSchedule as deleteScheduleApi,
+} from '../api/schedules'
 
 export const useScheduleStore = defineStore('schedule', () => {
-  const schedules = ref([...mockSchedules])
+  const schedules = ref([])
   const searchKeyword = ref('')
   const activeTab = ref('today') // today | all | done
+  const loaded = ref(false)
+  const loading = ref(false)
+
+  // 从后端加载日程列表（force=true 强制刷新）
+  async function loadSchedules(force = false) {
+    if (loading.value) return
+    if (loaded.value && !force) return
+    loading.value = true
+    try {
+      schedules.value = await fetchSchedules()
+      loaded.value = true
+    } finally {
+      loading.value = false
+    }
+  }
 
   // 今日日程（按开始时间升序）
   const todaySchedules = computed(() => {
@@ -52,30 +72,29 @@ export const useScheduleStore = defineStore('schedule', () => {
     ).length
   })
 
-  function addSchedule(data) {
-    const newSch = {
-      ...data,
-      id: 'sch' + String(Date.now()).slice(-6),
-      done: false,
-      createdAt: new Date().toLocaleString('zh-CN'),
-    }
+  async function addSchedule(data) {
+    const newSch = await createSchedule(data)
     schedules.value.unshift(newSch)
     return newSch
   }
 
-  function updateSchedule(id, data) {
+  async function updateSchedule(id, data) {
+    const updated = await updateScheduleApi(id, data)
     const idx = schedules.value.findIndex((s) => s.id === id)
-    if (idx !== -1) {
-      schedules.value[idx] = { ...schedules.value[idx], ...data, updatedAt: new Date().toLocaleString('zh-CN') }
-    }
+    if (idx !== -1) schedules.value[idx] = updated
+    return updated
   }
 
-  function toggleDone(id) {
+  async function toggleDone(id) {
     const sch = schedules.value.find((s) => s.id === id)
-    if (sch) sch.done = !sch.done
+    if (!sch) return
+    const updated = await updateScheduleApi(id, { done: !sch.done })
+    const idx = schedules.value.findIndex((s) => s.id === id)
+    if (idx !== -1) schedules.value[idx] = updated
   }
 
-  function deleteSchedule(id) {
+  async function deleteSchedule(id) {
+    await deleteScheduleApi(id)
     schedules.value = schedules.value.filter((s) => s.id !== id)
   }
 
@@ -83,6 +102,8 @@ export const useScheduleStore = defineStore('schedule', () => {
     schedules,
     searchKeyword,
     activeTab,
+    loaded,
+    loading,
     todaySchedules,
     pendingSchedules,
     doneSchedules,
@@ -90,6 +111,7 @@ export const useScheduleStore = defineStore('schedule', () => {
     todayCount,
     pendingCount,
     overdueCount,
+    loadSchedules,
     addSchedule,
     updateSchedule,
     toggleDone,

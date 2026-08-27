@@ -145,26 +145,18 @@ const passwordRules = [
   },
 ]
 
-function onSubmit() {
+async function onSubmit() {
   loading.value = true
-  // 模拟登录验证
-  setTimeout(() => {
-    // 验证账号存在性（模拟）
-    if (form.phone !== '13800138000') {
-      loading.value = false
-      showToast('账号不存在')
-      return
-    }
-    if (form.password !== 'abc123') {
-      loading.value = false
-      showToast('密码错误，请重试')
-      return
-    }
-    authStore.login(form.phone, form.password, form.remember)
-    loading.value = false
+  try {
+    // 真实登录：调用后端接口校验账号密码
+    await authStore.login(form.phone, form.password, form.remember)
     showToast({ message: '登录成功', type: 'success' })
     router.replace('/home')
-  }, 800)
+  } catch (e) {
+    showToast(e.message || '登录失败，请重试')
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

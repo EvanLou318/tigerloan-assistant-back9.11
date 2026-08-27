@@ -206,11 +206,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useProductStore } from '../../stores/product'
-import { mockASR, mockLLMExtractProduct, delay } from '../../mock/data'
+import { asr, extractProduct } from '../../api/ai'
 
 const route = useRoute()
 const router = useRouter()
@@ -256,17 +256,20 @@ const formData = reactive({
   source: 'text',
 })
 
-// 编辑模式：直接加载已有产品数据进入表单
+// 编辑模式：先从后端拉取产品数据再进入表单
 if (isEditMode) {
-  const product = store.getProductById(editId)
-  if (product) {
-    fillFormData(product)
-    formData.source = product.source || 'text'
-    step.value = 'preview'
-  } else {
-    showToast('产品不存在或已被删除')
-    router.back()
-  }
+  onMounted(async () => {
+    await store.loadProducts(true)
+    const product = store.getProductById(editId)
+    if (product) {
+      fillFormData(product)
+      formData.source = product.source || 'text'
+      step.value = 'preview'
+    } else {
+      showToast('产品不存在或已被删除')
+      router.back()
+    }
+  })
 }
 
 // 列表页底部弹框直达：携带 method 参数跳过方式选择步骤
@@ -315,19 +318,28 @@ async function stopRecording() {
     showToast('录音时间过短')
     return
   }
-  // 模拟 ASR 识别
-  const result = await mockASR()
-  asrResult.value = result
+  try {
+    // ASR 识别（后端 AI Provider）
+    const result = await asr()
+    asrResult.value = result
+  } catch (e) {
+    showToast(e.message || '语音识别失败')
+  }
 }
 
 async function processWithAI() {
   aiProcessing.value = true
   step.value = 'processing'
-  // 模拟 AI 提取
-  const result = await mockLLMExtractProduct(asrResult.value?.text)
-  aiProcessing.value = false
-  fillFormData(result.data)
-  step.value = 'preview'
+  try {
+    // AI 提取（后端 AI Provider）
+    const result = await extractProduct(asrResult.value?.text)
+    fillFormData(result.data)
+  } catch (e) {
+    showToast(e.message || 'AI 提取失败')
+  } finally {
+    aiProcessing.value = false
+    step.value = 'preview'
+  }
 }
 
 function triggerUpload() {
@@ -340,16 +352,17 @@ async function onFileChange(e) {
   uploadedFile.value = file.name
   ocrProcessing.value = true
 
-  // 模拟 OCR 处理
-  await delay(2500)
-  ocrProcessing.value = false
-  step.value = 'processing'
-  
-  // 模拟 AI 提取
-  const result = await mockLLMExtractProduct()
-  ocrResult.value = result
-  fillFormData(result.data)
-  step.value = 'preview'
+  try {
+    // AI 提取（后端 AI Provider，含文件解析延迟）
+    const result = await extractProduct()
+    ocrResult.value = result
+    fillFormData(result.data)
+  } catch (e) {
+    showToast(e.message || 'AI 提取失败')
+  } finally {
+    ocrProcessing.value = false
+    step.value = 'preview'
+  }
 }
 
 function showPreview() {
@@ -374,7 +387,7 @@ function fillFormData(data) {
   })
 }
 
-function onSave() {
+async function onSave() {
   // 校验利率区间
   if (formData.maxRate && Number(formData.minRate) > Number(formData.maxRate)) {
     showToast('最低年利率不能大于最高年利率')
@@ -387,7 +400,7 @@ function onSave() {
   }
 
   saving.value = true
-  setTimeout(() => {
+  try {
     const payload = {
       ...formData,
       minRate: Number(formData.minRate),
@@ -396,17 +409,19 @@ function onSave() {
       maxAmount: Number(formData.maxAmount),
     }
     if (isEditMode) {
-      store.updateProduct(editId, payload)
-      saving.value = false
+      await store.updateProduct(editId, payload)
       showSuccessToast('产品更新成功')
       setTimeout(() => router.replace(`/products/${editId}`), 800)
     } else {
-      store.addProduct(payload)
-      saving.value = false
+      await store.addProduct(payload)
       showSuccessToast('产品录入成功')
       setTimeout(() => router.replace('/products'), 800)
     }
-  }, 500)
+  } catch (e) {
+    showToast(e.message || '保存失败')
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 

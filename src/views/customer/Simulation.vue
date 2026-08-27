@@ -237,7 +237,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
 import { useProductStore } from '../../stores/product'
-import { mockLLMMatch } from '../../mock/data'
+import { matchProducts } from '../../api/ai'
 
 const route = useRoute()
 const router = useRouter()
@@ -357,7 +357,7 @@ async function runSimulation() {
     ...customer.value,
     ...simData,
   }
-  const result = await mockLLMMatch(simCustomer, productStore.products)
+  const result = await matchProducts(simCustomer, productStore.products)
   simResult.value = result
   matching.value = false
 
@@ -367,7 +367,7 @@ async function runSimulation() {
   resultSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-function saveSimulation() {
+async function saveSimulation() {
   if (!saveName.value) {
     showToast('请输入推演名称')
     return
@@ -378,7 +378,7 @@ function saveSimulation() {
       adjustments[key] = { old: originalData[key], new: simData[key] }
     }
   }
-  customerStore.addSimulation({
+  await customerStore.addSimulation({
     customerId: customer.value.id,
     name: saveName.value,
     adjustments,
@@ -388,7 +388,13 @@ function saveSimulation() {
   showSuccessToast('推演记录已保存')
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 先加载客户与推演历史（覆盖直接刷新进入本页的场景）
+  try {
+    await customerStore.loadCustomers()
+    await customerStore.loadSimulations(route.params.id)
+    await productStore.loadProducts(true)
+  } catch (e) { /* 拦截器已提示 */ }
   initSimData()
   // 如果是加载历史推演
   if (route.query.load) {

@@ -95,13 +95,18 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import MainLayout from '../../layouts/MainLayout.vue'
 import ProductMethodSheet from '../../components/ProductMethodSheet.vue'
 import { useProductStore } from '../../stores/product'
 
 const store = useProductStore()
 const showMethodSheet = ref(false)
+
+// 每次进入列表从后端拉取最新数据
+onMounted(() => {
+  store.loadProducts(true)
+})
 
 function getSourceIcon(source) {
   const icons = {

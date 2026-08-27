@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showSuccessToast, showConfirmDialog } from 'vant'
 import { useAuthStore } from '../../stores/auth'
@@ -108,6 +108,10 @@ import { useScheduleStore } from '../../stores/schedule'
 const router = useRouter()
 const authStore = useAuthStore()
 const scheduleStore = useScheduleStore()
+
+onMounted(() => {
+  scheduleStore.loadSchedules(true)
+})
 
 const userInfo = authStore.userInfo
 

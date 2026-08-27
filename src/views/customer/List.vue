@@ -88,6 +88,7 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import MainLayout from '../../layouts/MainLayout.vue'
 import { useCustomerStore } from '../../stores/customer'
@@ -96,6 +97,11 @@ import { useScheduleStore } from '../../stores/schedule'
 const router = useRouter()
 const store = useCustomerStore()
 const scheduleStore = useScheduleStore()
+
+onMounted(() => {
+  store.loadCustomers()
+  scheduleStore.loadSchedules()
+})
 
 // 某客户的未来未完成日程（按开始时间升序）
 function upcomingSchedules(customerId) {

@@ -205,7 +205,7 @@ import { useRoute } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useScheduleStore } from '../../stores/schedule'
 import { useCustomerStore } from '../../stores/customer'
-import { mockASR, mockLLMExtractSchedule, delay } from '../../mock/data'
+import { asr as asrApi, extractSchedule as extractScheduleApi } from '../../api/ai'
 
 const router = useRouter()
 const route = useRoute()
@@ -375,7 +375,7 @@ async function stopRecording() {
     showToast('录音时间过短')
     return
   }
-  const result = await mockASR()
+  const result = await asrApi()
   asrResult.value = result.text
   asrConfidence.value = Math.round((result.confidence || 0.9) * 100)
 }
@@ -386,7 +386,7 @@ async function processVoice() {
     return
   }
   aiProcessing.value = true
-  const result = await mockLLMExtractSchedule(asrResult.value)
+  const result = await extractScheduleApi(asrResult.value)
   aiProcessing.value = false
   applyAiResult(result.data)
   step.value = 'form'
@@ -451,7 +451,6 @@ async function processHandwriting() {
     return
   }
   aiProcessing.value = true
-  await delay(800)
   // 模拟手写识别：根据笔画数量生成不同长度文本
   const samples = [
     '明天下午 3 点与张总面谈',
@@ -463,7 +462,7 @@ async function processHandwriting() {
   aiProcessing.value = false
   asrResult.value = recognized
   asrConfidence.value = 82
-  const ai = await mockLLMExtractSchedule(recognized)
+  const ai = await extractScheduleApi(recognized)
   applyAiResult(ai.data)
   step.value = 'form'
 }
@@ -547,7 +546,7 @@ function formatDT(iso) {
   return `${d.getMonth() + 1}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-function onSave() {
+async function onSave() {
   if (!form.title?.trim()) {
     showToast('请输入日程标题')
     return
@@ -561,8 +560,8 @@ function onSave() {
     return
   }
   saving.value = true
-  setTimeout(() => {
-    scheduleStore.addSchedule({
+  try {
+    await scheduleStore.addSchedule({
       title: form.title.trim(),
       startTime: form.startTime,
       endTime: form.endTime || form.startTime,
@@ -578,10 +577,15 @@ function onSave() {
     saving.value = false
     showSuccessToast('日程已创建')
     setTimeout(() => router.replace('/schedules'), 500)
-  }, 400)
+  } catch (err) {
+    saving.value = false
+    showToast(err.message || '保存失败，请重试')
+  }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 关联客户选择器需要客户数据
+  customerStore.loadCustomers().catch(() => {})
   // 支持从客户详情页跳转预填关联客户：/schedules/create?customerId=xxx&customerName=xxx
   const qId = route.query.customerId
   const qName = route.query.customerName

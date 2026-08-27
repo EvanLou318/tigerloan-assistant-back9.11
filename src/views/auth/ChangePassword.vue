@@ -79,6 +79,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useAuthStore } from '../../stores/auth'
+import { changePasswordApi } from '../../api/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -114,23 +115,23 @@ const confirmRules = [
   },
 ]
 
-function onSubmit() {
+async function onSubmit() {
   if (form.oldPassword === form.newPassword) {
     showToast('新密码不能与当前密码相同')
     return
   }
-  // 模拟原密码校验
-  if (form.oldPassword !== 'abc123') {
-    showToast('原密码错误')
-    return
-  }
   loading.value = true
-  setTimeout(() => {
-    loading.value = false
+  try {
+    // 真实修改密码：调用后端接口校验原密码并更新
+    await changePasswordApi({ oldPassword: form.oldPassword, newPassword: form.newPassword })
     authStore.logout()
     showSuccessToast('密码修改成功，请重新登录')
     setTimeout(() => router.replace('/login'), 1000)
-  }, 800)
+  } catch (e) {
+    showToast(e.message || '修改失败，请重试')
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

@@ -140,7 +140,7 @@
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { mockAssistantReply } from '../../mock/data'
+import { assistantReply } from '../../api/ai'
 import { useCustomerStore } from '../../stores/customer'
 import { useProductStore } from '../../stores/product'
 import { useScheduleStore } from '../../stores/schedule'
@@ -201,7 +201,7 @@ async function send(preset) {
   pushMsg('user', text)
   thinking.value = true
 
-  const result = await mockAssistantReply(text)
+  const result = await assistantReply(text)
   thinking.value = false
 
   switch (result.intent) {

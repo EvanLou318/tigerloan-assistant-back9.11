@@ -1,19 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { loginApi } from '../api/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
   const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || 'null'))
 
-  function login(phone, password, remember) {
-    // 模拟登录
-    token.value = 'mock-jwt-token-' + Date.now()
-    userInfo.value = {
-      phone,
-      name: '李经理',
-      role: 'loan_manager',
-      loginTime: new Date().toLocaleString('zh-CN'),
-    }
+  async function login(phone, password, remember) {
+    // 真实登录：调用后端接口换取 JWT
+    const data = await loginApi({ phone, password })
+    token.value = data.token
+    userInfo.value = data.user
     localStorage.setItem('token', token.value)
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
     if (remember) {

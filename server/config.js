@@ -1,0 +1,26 @@
+// ==================== 服务端配置 ====================
+// 所有配置均可通过环境变量覆盖；未来接入真实 AI 服务时，
+// 在此填写对应 key 或通过 .env / 环境变量注入即可。
+
+export const config = {
+  // 服务端口（前端 vite proxy 指向这里）
+  port: Number(process.env.PORT || 3001),
+
+  // JWT 密钥：生产环境务必通过环境变量 JWT_SECRET 覆盖
+  jwtSecret: process.env.JWT_SECRET || 'loan-assistant-dev-secret-do-not-use-in-prod',
+  jwtExpires: process.env.JWT_EXPIRES || '7d',
+
+  // AI Provider：mock（模拟，默认）| real（真实服务，需配置下方 key）
+  aiProvider: process.env.AI_PROVIDER || 'mock',
+
+  // —— 未来接入真实 AI 服务时填写（当前留空走 mock）——
+  // 通用大模型（OpenAI 兼容协议）
+  llmApiKey: process.env.LLM_API_KEY || '',
+  llmBaseUrl: process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
+  llmModel: process.env.LLM_MODEL || 'gpt-4o-mini',
+  // OCR / ASR 服务（如腾讯云、阿里云、讯飞等）
+  ocrApiKey: process.env.OCR_API_KEY || '',
+  ocrSecretKey: process.env.OCR_SECRET_KEY || '',
+  asrApiKey: process.env.ASR_API_KEY || '',
+  asrSecretKey: process.env.ASR_SECRET_KEY || '',
+}

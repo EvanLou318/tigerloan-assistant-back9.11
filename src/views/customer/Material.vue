@@ -197,22 +197,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
 import {
-  delay,
-  mockOCRIdCard,
-  mockOCRBankStatement,
-  mockOCRCreditReport,
-  mockOCRIncomeProof,
-  mockOCRSocialSecurity,
-  mockOCRProperty,
-  mockOCRBusinessLicense,
-  mockASR,
-  mockLLMExtractVoice,
-} from '../../mock/data'
+  ocrIdCard,
+  ocrBankStatement,
+  ocrCreditReport,
+  ocrIncomeProof,
+  ocrSocialSecurity,
+  ocrProperty,
+  ocrBusinessLicense,
+  asr as asrApi,
+  extractFromVoice,
+} from '../../api/ai'
 
 const route = useRoute()
 const router = useRouter()
@@ -243,7 +242,7 @@ let recordTimer = null
 const materialTypes = [
   {
     key: 'idcard', name: '身份证', icon: '🪪', priority: 'P0', priorityClass: 'p0', hint: '正反面照片或扫描件',
-    extract: mockOCRIdCard,
+    extract: ocrIdCard,
     sourceName: '身份证OCR',
     mapping: [
       { key: 'name', label: '姓名', from: 'name' },
@@ -256,7 +255,7 @@ const materialTypes = [
   },
   {
     key: 'bankflow', name: '银行流水', icon: '🏦', priority: 'P1', priorityClass: 'p1', hint: 'PDF或截图，近6个月',
-    extract: mockOCRBankStatement,
+    extract: ocrBankStatement,
     sourceName: '银行流水OCR',
     mapping: [
       { key: 'monthlyIncome', label: '月均收入', from: 'monthlyAvgIncome', type: 'number' },
@@ -266,7 +265,7 @@ const materialTypes = [
   },
   {
     key: 'credit', name: '征信报告', icon: '📊', priority: 'P0', priorityClass: 'p0', hint: '央行征信，多页自动拼接',
-    extract: mockOCRCreditReport,
+    extract: ocrCreditReport,
     sourceName: '征信报告OCR',
     mapping: [
       { key: 'totalDebt', label: '总负债', from: 'totalDebt', type: 'number' },
@@ -279,7 +278,7 @@ const materialTypes = [
   },
   {
     key: 'income', name: '收入证明', icon: '💼', priority: 'P1', priorityClass: 'p1', hint: '公司开具的收入证明',
-    extract: mockOCRIncomeProof,
+    extract: ocrIncomeProof,
     sourceName: '收入证明OCR',
     mapping: [
       { key: 'employer', label: '工作单位', from: 'employer' },
@@ -289,7 +288,7 @@ const materialTypes = [
   },
   {
     key: 'social', name: '社保公积金', icon: '🏘️', priority: 'P1', priorityClass: 'p1', hint: '社保/公积金缴纳记录',
-    extract: mockOCRSocialSecurity,
+    extract: ocrSocialSecurity,
     sourceName: '社保公积金OCR',
     mapping: [
       { key: 'employer', label: '缴纳单位', from: 'employer' },
@@ -299,7 +298,7 @@ const materialTypes = [
   },
   {
     key: 'property', name: '房产证', icon: '🏠', priority: 'P2', priorityClass: 'p2', hint: '不动产权证书',
-    extract: mockOCRProperty,
+    extract: ocrProperty,
     sourceName: '房产证OCR',
     mapping: [
       { key: 'propertyValue', label: '房产价值(万)', from: 'propertyValue', type: 'number' },
@@ -308,7 +307,7 @@ const materialTypes = [
   },
   {
     key: 'license', name: '营业执照', icon: '📄', priority: 'P2', priorityClass: 'p2', hint: '企业营业执照',
-    extract: mockOCRBusinessLicense,
+    extract: ocrBusinessLicense,
     sourceName: '营业执照OCR',
     mapping: [
       { key: 'employer', label: '企业名称', from: 'employer' },
@@ -367,15 +366,30 @@ async function onFileChange(e) {
   let result
   const material = currentMaterial.value
   try {
-    result = await material.extract()
+    if (file) {
+      // 真实文件上传：经后端 multer 存档 + Provider 识别
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('type', material.key)
+      const resp = await fetch(`/api/ai/ocr/${material.key}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+        body: fd,
+      })
+      const body = await resp.json()
+      if (!body.success) throw new Error(body.message || '识别失败')
+      result = body.data
+    } else {
+      result = await material.extract()
+    }
     processingTitle.value = `${material.sourceName} 提取中...`
   } catch (err) {
-    result = await mockOCRIdCard()
+    result = await ocrIdCard()
   }
 
   clearInterval(stepInterval)
   procStep.value = 3
-  await delay(500)
+  await new Promise((r) => setTimeout(r, 500))
 
   extractedData.value = result.data
   extractedConfidence.value = result.confidence
@@ -411,13 +425,13 @@ async function stopRecording() {
     procStep.value++
   }, 700)
 
-  const asr = await mockASR()
-  asrResult.value = asr
-  asrConfidence.value = Math.round((0.85 + Math.random() * 0.1) * 100)
+  const asrRes = await asrApi()
+  asrResult.value = asrRes
+  asrConfidence.value = Math.round((asrRes.confidence || 0.9) * 100)
 
   clearInterval(stepInterval)
   procStep.value = 3
-  await delay(500)
+  await new Promise((r) => setTimeout(r, 500))
   step.value = 'voice'
 }
 
@@ -432,11 +446,11 @@ async function extractVoiceData() {
     procStep.value++
   }, 700)
 
-  const extracted = await mockLLMExtractVoice(asrResult.value?.text)
+  const extracted = await extractFromVoice(asrResult.value?.text)
 
   clearInterval(stepInterval)
   procStep.value = 3
-  await delay(500)
+  await new Promise((r) => setTimeout(r, 500))
 
   extractedData.value = extracted.data
   extractedConfidence.value = extracted.confidence
@@ -529,9 +543,9 @@ function formatConflict(field) {
   return field.oldValue
 }
 
-function onSaveMerge() {
+async function onSaveMerge() {
   saving.value = true
-  setTimeout(() => {
+  try {
     const updates = {}
     for (const f of mergeFields.value) {
       if (!f.checked || !f.store) continue
@@ -544,8 +558,8 @@ function onSaveMerge() {
       }
     }
 
-    store.mergeCustomerFields(customerId, updates)
-    store.addMaterial(customerId, {
+    await store.mergeCustomerFields(customerId, updates)
+    await store.addMaterial(customerId, {
       type: currentMaterial.value?.name || '语音口述',
       source: inputMethod.value === 'photo' ? 'photo' : inputMethod.value === 'voice' ? 'voice' : 'upload',
       confidence: extractedConfidence.value,
@@ -556,7 +570,10 @@ function onSaveMerge() {
     saving.value = false
     showSuccessToast(`已合并 ${Object.keys(updates).length} 项信息`)
     setTimeout(() => router.replace(`/customers/${customerId}`), 800)
-  }, 600)
+  } catch (err) {
+    saving.value = false
+    showToast(err.message || '保存失败，请重试')
+  }
 }
 
 function resetToSelect() {
@@ -567,6 +584,10 @@ function resetToSelect() {
   extractedData.value = null
   mergeFields.value = []
 }
+
+onMounted(() => {
+  store.loadCustomers().catch(() => {})
+})
 </script>
 
 <style scoped>

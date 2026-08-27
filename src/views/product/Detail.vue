@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast, showConfirmDialog } from 'vant'
 import { useProductStore } from '../../stores/product'
@@ -100,6 +100,11 @@ const route = useRoute()
 const router = useRouter()
 const store = useProductStore()
 const showActionSheet = ref(false)
+
+// 进入详情页从后端拉取最新数据
+onMounted(() => {
+  store.loadProducts(true)
+})
 
 const product = computed(() => store.getProductById(route.params.id))
 
@@ -118,19 +123,27 @@ const actions = computed(() => {
   ]
 })
 
-function onActionSelect(action) {
+async function onActionSelect(action) {
   if (action.name === '禁用产品' || action.name === '启用产品') {
-    store.toggleStatus(product.value.id)
-    showSuccessToast(action.name === '禁用产品' ? '已禁用' : '已启用')
+    try {
+      await store.toggleStatus(product.value.id)
+      showSuccessToast(action.name === '禁用产品' ? '已禁用' : '已启用')
+    } catch (e) {
+      showToast(e.message || '操作失败')
+    }
   } else if (action.name === '删除产品') {
     showConfirmDialog({
       title: '确认删除',
       message: '删除后产品将不在匹配列表中展示，数据可恢复',
     })
-      .then(() => {
-        store.deleteProduct(product.value.id)
-        showSuccessToast('删除成功')
-        setTimeout(() => router.replace('/products'), 800)
+      .then(async () => {
+        try {
+          await store.deleteProduct(product.value.id)
+          showSuccessToast('删除成功')
+          setTimeout(() => router.replace('/products'), 800)
+        } catch (e) {
+          showToast(e.message || '删除失败')
+        }
       })
       .catch(() => {})
   }

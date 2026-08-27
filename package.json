@@ -5,19 +5,30 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
+    "server": "node server/index.js",
+    "dev:all": "concurrently -n web,api -c cyan,green \"npm run dev\" \"npm run server\"",
+    "seed": "node server/seed.js",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173"
   },
   "dependencies": {
-    "vue": "^3.4.21",
-    "vue-router": "^4.3.0",
+    "axios": "^1.19.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "concurrently": "^10.0.5",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
     "pinia": "^2.1.7",
-    "vant": "^4.8.7"
+    "vant": "^4.8.7",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
   },
   "devDependencies": {
+    "@vant/auto-import-resolver": "^1.2.1",
     "@vitejs/plugin-vue": "^5.0.4",
-    "vite": "^5.2.0",
     "unplugin-vue-components": "^0.26.0",
-    "@vant/auto-import-resolver": "^1.2.1"
+    "vite": "^5.2.0"
   }
 }
