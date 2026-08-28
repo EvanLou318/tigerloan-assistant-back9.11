@@ -28,7 +28,8 @@
             </td>
             <td class="mono">{{ u.phone }}</td>
             <td>
-              <span class="role" :class="u.role === '管理员' ? 'admin' : ''">{{ u.role }}</span>
+              <span class="role" :class="u.role === 'admin' ? 'admin' : ''">{{ u.roleName || u.role }}</span>
+              <button class="link-btn role-edit" @click="openRoleChange(u)">改角色</button>
             </td>
             <td class="num">{{ u.customerCount }}</td>
             <td class="num">{{ u.productCount }}</td>
@@ -65,19 +66,48 @@
             <label>角色</label>
             <div class="role-picker">
               <button
-                v-for="r in ['loan_manager', 'admin']"
-                :key="r"
+                v-for="r in roles"
+                :key="r.code"
                 class="role-opt"
-                :class="{ active: createForm.role === r }"
-                @click="createForm.role = r"
+                :class="{ active: createForm.role === r.code }"
+                @click="createForm.role = r.code"
               >
-                {{ r === 'loan_manager' ? '贷款经理' : '管理员' }}
+                {{ r.name }}
               </button>
             </div>
           </div>
           <div class="modal-actions">
             <button class="ghost-btn" @click="showCreate = false">取消</button>
             <button class="primary-btn" :disabled="saving" @click="submitCreate">创建</button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- 改角色弹窗 -->
+    <teleport to="body">
+      <div v-if="roleTarget" class="modal-mask" @click.self="roleTarget = null">
+        <div class="modal">
+          <div class="modal-title">调整角色 · {{ roleTarget.name }}</div>
+          <div class="form-item">
+            <label>当前角色：{{ roleTarget.roleName || roleTarget.role }}</label>
+            <div class="role-picker">
+              <button
+                v-for="r in roles"
+                :key="r.code"
+                class="role-opt"
+                :class="{ active: newRole === r.code }"
+                @click="newRole = r.code"
+              >
+                {{ r.name }}
+                <span class="opt-desc">{{ r.description }}</span>
+              </button>
+            </div>
+          </div>
+          <div class="form-item tip-line">角色调整后，该用户重新登录即可获得新角色的菜单与接口权限</div>
+          <div class="modal-actions">
+            <button class="ghost-btn" @click="roleTarget = null">取消</button>
+            <button class="primary-btn" :disabled="saving" @click="submitRoleChange">确认调整</button>
           </div>
         </div>
       </div>
@@ -105,13 +135,23 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { showConfirmDialog, showSuccessToast, showToast } from 'vant'
-import { fetchAdminUsers, createAdminUser, resetUserPassword, deleteAdminUser } from '../../api/admin'
+import {
+  fetchAdminUsers,
+  createAdminUser,
+  resetUserPassword,
+  deleteAdminUser,
+  fetchRoles,
+  updateUserRole,
+} from '../../api/admin'
 
 const users = ref([])
+const roles = ref([])
 const showCreate = ref(false)
 const createForm = ref({ name: '', phone: '', password: '', role: 'loan_manager' })
 const resetTarget = ref(null)
 const resetPassword = ref('')
+const roleTarget = ref(null)
+const newRole = ref('')
 const saving = ref(false)
 
 async function load() {
@@ -121,7 +161,7 @@ async function load() {
 }
 
 function openCreate() {
-  createForm.value = { name: '', phone: '', password: '', role: 'loan_manager' }
+  createForm.value = { name: '', phone: '', password: '', role: roles.value[roles.value.length - 1]?.code || 'loan_manager' }
   showCreate.value = true
 }
 
@@ -142,6 +182,25 @@ async function submitCreate() {
 function openReset(u) {
   resetTarget.value = u
   resetPassword.value = ''
+}
+
+function openRoleChange(u) {
+  roleTarget.value = u
+  newRole.value = u.role
+}
+
+async function submitRoleChange() {
+  saving.value = true
+  try {
+    await updateUserRole(roleTarget.value.id, newRole.value)
+    roleTarget.value = null
+    showSuccessToast('角色已调整')
+    await load()
+  } catch (e) {
+    showToast(e.message || '调整失败')
+  } finally {
+    saving.value = false
+  }
 }
 
 async function submitReset() {
@@ -175,7 +234,10 @@ async function remove(u) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  fetchRoles().then((rs) => (roles.value = rs)).catch(() => {})
+})
 </script>
 
 <style scoped>
@@ -282,6 +344,25 @@ onMounted(load)
 .role.admin {
   background: #FFF4E5;
   color: #F59E0B;
+}
+
+.role-edit {
+  font-size: 11px;
+  padding: 2px 6px;
+  margin-left: 4px;
+}
+
+.opt-desc {
+  display: block;
+  font-size: 10px;
+  color: #98A5C3;
+  margin-top: 3px;
+  white-space: normal;
+}
+
+.tip-line {
+  font-size: 12px;
+  color: #BA7517;
 }
 
 .time-cell {

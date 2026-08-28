@@ -123,6 +123,50 @@ CREATE INDEX IF NOT EXISTS idx_customers_user   ON customers(user_id);
 CREATE INDEX IF NOT EXISTS idx_materials_cust   ON materials(customer_id);
 CREATE INDEX IF NOT EXISTS idx_sim_user_cust    ON simulations(user_id, customer_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_user   ON schedules(user_id);
+
+-- RBAC 角色权限模型 + 系统设置
+CREATE TABLE IF NOT EXISTS roles (
+  code        TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  sort        INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS permissions (
+  code   TEXT PRIMARY KEY,
+  name   TEXT NOT NULL,
+  module TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+  role_code       TEXT NOT NULL,
+  permission_code TEXT NOT NULL,
+  PRIMARY KEY (role_code, permission_code)
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+-- 三方服务供应商配置（大模型 / OCR / ASR，可后台切换服务商）
+CREATE TABLE IF NOT EXISTS service_providers (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  category    TEXT NOT NULL,              -- llm | ocr | asr
+  name        TEXT NOT NULL,              -- 展示名，如"通义千问"
+  provider_type TEXT NOT NULL,            -- 协议/厂商类型，如 openai-compatible | tencent | aliyun | xfyun | custom
+  base_url    TEXT NOT NULL DEFAULT '',
+  api_key     TEXT NOT NULL DEFAULT '',   -- 存储明文，接口输出时脱敏
+  secret_key  TEXT NOT NULL DEFAULT '',   -- 部分厂商需要（腾讯云等）
+  model       TEXT NOT NULL DEFAULT '',   -- LLM 模型名
+  extra       TEXT NOT NULL DEFAULT '{}', -- 预留扩展参数 JSON
+  enabled     INTEGER NOT NULL DEFAULT 1,
+  is_default  INTEGER NOT NULL DEFAULT 0, -- 分类内互斥：仅一个默认
+  remark      TEXT NOT NULL DEFAULT '',
+  created_at  TEXT NOT NULL,
+  updated_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sp_category ON service_providers(category);
 `)
 
 // ---------- 行 → 前端对象 映射（snake_case → camelCase） ----------

@@ -113,6 +113,8 @@ const routes = [
       { path: 'products', name: 'AdminProducts', component: () => import('../views/admin/Products.vue'), meta: { title: '产品管理', requiresAuth: true, admin: true } },
       { path: 'schedules', name: 'AdminSchedules', component: () => import('../views/admin/Schedules.vue'), meta: { title: '日程管理', requiresAuth: true, admin: true } },
       { path: 'users', name: 'AdminUsers', component: () => import('../views/admin/Users.vue'), meta: { title: '用户管理', requiresAuth: true, admin: true } },
+      { path: 'security', name: 'AdminSecurity', component: () => import('../views/admin/Security.vue'), meta: { title: '权限与安全', requiresAuth: true, admin: true } },
+      { path: 'services', name: 'AdminServices', component: () => import('../views/admin/Services.vue'), meta: { title: '三方服务', requiresAuth: true, admin: true } },
     ],
   },
 ]

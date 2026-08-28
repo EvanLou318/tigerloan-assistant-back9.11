@@ -7,6 +7,7 @@ import { db } from '../db.js'
 import { config } from '../config.js'
 import { ok, fail } from '../utils.js'
 import { authRequired } from '../middleware/auth.js'
+import { getRolePermissions, roleName } from '../rbac.js'
 
 const router = Router()
 
@@ -34,6 +35,8 @@ router.post('/login', (req, res) => {
       phone: user.phone,
       name: user.name,
       role: user.role,
+      roleName: roleName(user.role),
+      permissions: getRolePermissions(user.role),
       loginTime: new Date().toLocaleString('zh-CN'),
     },
   })
@@ -64,7 +67,14 @@ router.post('/change-password', authRequired, (req, res) => {
 router.get('/me', authRequired, (req, res) => {
   const user = db.prepare('SELECT id, phone, name, role, created_at FROM users WHERE id = ?').get(req.user.id)
   if (!user) return fail(res, 401, '用户不存在')
-  ok(res, { id: user.id, phone: user.phone, name: user.name, role: user.role })
+  ok(res, {
+    id: user.id,
+    phone: user.phone,
+    name: user.name,
+    role: user.role,
+    roleName: roleName(user.role),
+    permissions: getRolePermissions(user.role),
+  })
 })
 
 export default router

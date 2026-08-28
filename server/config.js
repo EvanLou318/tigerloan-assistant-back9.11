@@ -10,8 +10,8 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'loan-assistant-dev-secret-do-not-use-in-prod',
   jwtExpires: process.env.JWT_EXPIRES || '7d',
 
-  // AI Provider：mock（模拟，默认）| real（真实服务，需配置下方 key）
-  aiProvider: process.env.AI_PROVIDER || 'mock',
+  // AI Provider：auto（默认，按管理后台三方服务配置逐分类切换）| mock | real
+  aiProvider: process.env.AI_PROVIDER || 'auto',
 
   // —— 未来接入真实 AI 服务时填写（当前留空走 mock）——
   // 通用大模型（OpenAI 兼容协议）

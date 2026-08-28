@@ -1,0 +1,219 @@
+// ==================== 三方服务供应商管理 ====================
+// 管理后台「三方服务」配置：大模型 / OCR / ASR 供应商的增删改、启停、
+// 设默认（分类内互斥）、连通性测试。API Key 输出时脱敏，留空提交不覆盖。
+
+import { Router } from 'express'
+import { db } from '../db.js'
+import { ok, fail, genId, fmtDateTime, BizError } from '../utils.js'
+import { requirePerm } from '../middleware/auth.js'
+import {
+  SERVICE_CATEGORIES,
+  isValidCategory,
+  listProviders,
+  getCategoryRuntime,
+  getActiveProvider,
+  callLLM,
+} from '../services/ai/registry.js'
+
+const router = Router()
+
+const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
+
+// 供应商类型选项（前端下拉 + 校验共用）
+const PROVIDER_TYPES = {
+  llm: ['openai-compatible', 'anthropic', 'custom'],
+  ocr: ['tencent', 'aliyun', 'xfyun', 'baidu', 'custom'],
+  asr: ['tencent', 'xfyun', 'aliyun', 'custom'],
+}
+
+// ---------- 输出脱敏 ----------
+function maskKey(key) {
+  if (!key) return ''
+  if (key.length <= 8) return '****'
+  return `${key.slice(0, 4)}****${key.slice(-4)}`
+}
+
+function rowOut(r) {
+  return {
+    id: r.id,
+    category: r.category,
+    name: r.name,
+    providerType: r.provider_type,
+    baseUrl: r.base_url,
+    apiKeyMasked: maskKey(r.api_key),
+    hasKey: !!r.api_key,
+    hasSecret: !!r.secret_key,
+    model: r.model,
+    enabled: !!r.enabled,
+    isDefault: !!r.is_default,
+    remark: r.remark,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  }
+}
+
+// GET /api/services  供应商列表（按分类分组）
+router.get('/', requirePerm('admin.services.view'), (req, res) => {
+  const groups = SERVICE_CATEGORIES.map((c) => {
+    const rows = db
+      .prepare('SELECT * FROM service_providers WHERE category = ? ORDER BY is_default DESC, created_at ASC')
+      .all(c.code)
+    const runtime = getCategoryRuntime(c.code)
+    return {
+      category: c.code,
+      name: c.name,
+      desc: c.desc,
+      needsModel: c.needsModel,
+      providerTypes: PROVIDER_TYPES[c.code] || ['custom'],
+      mode: runtime.mode, // real | mock
+      activeProvider: runtime.provider
+        ? { id: runtime.provider.id, name: runtime.provider.name, baseUrl: runtime.provider.baseUrl, model: runtime.provider.model }
+        : null,
+      providers: rows.map(rowOut),
+    }
+  })
+  ok(res, groups)
+})
+
+// POST /api/services  新增供应商
+router.post('/', requirePerm('admin.services.manage'), wrap(async (req, res) => {
+  const b = req.body || {}
+  const { category, name, providerType, baseUrl, apiKey, secretKey, model, enabled, isDefault, remark } = b
+
+  if (!isValidCategory(category)) throw new BizError('服务分类不正确（llm / ocr / asr）')
+  if (!name?.trim()) throw new BizError('请填写供应商名称')
+  const types = PROVIDER_TYPES[category] || []
+  if (providerType && !types.includes(providerType)) {
+    throw new BizError(`该分类支持的类型：${types.join(' / ')}`)
+  }
+  if (category === 'llm' && isDefault && !apiKey) {
+    throw new BizError('设为默认的 LLM 供应商必须填写 API Key')
+  }
+
+  const now = fmtDateTime()
+  const setDefault = isDefault && apiKey ? 1 : 0
+  if (setDefault) {
+    db.prepare('UPDATE service_providers SET is_default = 0 WHERE category = ?').run(category)
+  }
+  const info = db
+    .prepare(`INSERT INTO service_providers (category, name, provider_type, base_url, api_key, secret_key, model, enabled, is_default, remark, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(category, name.trim(), providerType || 'custom', baseUrl || '', apiKey || '', secretKey || '', model || '', enabled === false ? 0 : 1, setDefault, remark || '', now, now)
+  ok(res, { id: info.lastInsertRowid })
+}))
+
+// PUT /api/services/:id  更新（apiKey/secretKey 留空 = 保持不变）
+router.put('/:id', requirePerm('admin.services.manage'), wrap(async (req, res) => {
+  const row = db.prepare('SELECT * FROM service_providers WHERE id = ?').get(req.params.id)
+  if (!row) throw new BizError('供应商不存在', 404)
+  const b = req.body || {}
+
+  if (b.name !== undefined && !b.name?.trim()) throw new BizError('名称不能为空')
+  if (b.category !== undefined && b.category !== row.category) throw new BizError('不允许修改分类，请新建')
+
+  const nextKey = b.apiKey === '' || b.apiKey === undefined ? row.api_key : b.apiKey
+  const nextSecret = b.secretKey === '' || b.secretKey === undefined ? row.secret_key : b.secret_key
+  const nextEnabled = b.enabled === undefined ? row.enabled : b.enabled ? 1 : 0
+  let nextDefault = b.isDefault === undefined ? row.is_default : b.isDefault ? 1 : 0
+
+  if (nextDefault && (!nextKey || !nextEnabled)) {
+    throw new BizError('默认供应商必须启用且已配置 API Key')
+  }
+  if (nextDefault && !row.is_default) {
+    db.prepare('UPDATE service_providers SET is_default = 0 WHERE category = ?').run(row.category)
+  }
+  // 取消默认时至少保证不出现"全无默认"导致配置失效——允许，运行时会回退 mock
+
+  db.prepare(`UPDATE service_providers SET name = ?, provider_type = ?, base_url = ?, api_key = ?, secret_key = ?, model = ?, enabled = ?, is_default = ?, remark = ?, updated_at = ? WHERE id = ?`)
+    .run(
+      b.name !== undefined ? b.name.trim() : row.name,
+      b.providerType || row.provider_type,
+      b.baseUrl !== undefined ? b.baseUrl : row.base_url,
+      nextKey,
+      nextSecret,
+      b.model !== undefined ? b.model : row.model,
+      nextEnabled,
+      nextDefault,
+      b.remark !== undefined ? b.remark : row.remark,
+      fmtDateTime(),
+      row.id
+    )
+  ok(res, { id: row.id })
+}))
+
+// POST /api/services/:id/default  设为分类默认（互斥）
+router.post('/:id/default', requirePerm('admin.services.manage'), (req, res) => {
+  const row = db.prepare('SELECT * FROM service_providers WHERE id = ?').get(req.params.id)
+  if (!row) throw new BizError('供应商不存在', 404)
+  if (!row.enabled) throw new BizError('请先启用该供应商')
+  if (!row.api_key) throw new BizError('请先填写 API Key')
+
+  const tx = db.transaction(() => {
+    db.prepare('UPDATE service_providers SET is_default = 0 WHERE category = ?').run(row.category)
+    db.prepare('UPDATE service_providers SET is_default = 1, updated_at = ? WHERE id = ?').run(fmtDateTime(), row.id)
+  })
+  tx()
+  ok(res, { id: row.id, category: row.category })
+})
+
+// DELETE /api/services/:id
+router.delete('/:id', requirePerm('admin.services.manage'), (req, res) => {
+  const row = db.prepare('SELECT * FROM service_providers WHERE id = ?').get(req.params.id)
+  if (!row) throw new BizError('供应商不存在', 404)
+  db.prepare('DELETE FROM service_providers WHERE id = ?').run(row.id)
+  ok(res, { id: row.id })
+})
+
+// POST /api/services/:id/test  连通性测试
+router.post('/:id/test', requirePerm('admin.services.view'), wrap(async (req, res) => {
+  const row = db.prepare('SELECT * FROM service_providers WHERE id = ?').get(req.params.id)
+  if (!row) throw new BizError('供应商不存在', 404)
+
+  if (!row.api_key) return ok(res, { pass: false, message: '未配置 API Key' })
+
+  try {
+    if (row.category === 'llm') {
+      // 真实调用一次 chat/completions（1 token 级请求）
+      const started = Date.now()
+      const baseUrl = (row.base_url || 'https://api.openai.com/v1').replace(/\/+$/, '')
+      const resp = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${row.api_key}` },
+        body: JSON.stringify({ model: row.model || 'gpt-4o-mini', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+        signal: AbortSignal.timeout(15000),
+      })
+      if (resp.ok) {
+        return ok(res, { pass: true, message: `连接成功（${Date.now() - started}ms，模型 ${row.model || '默认'}）` })
+      }
+      const detail = await resp.text().catch(() => '')
+      return ok(res, { pass: false, message: `HTTP ${resp.status}：${detail.slice(0, 120)}` })
+    }
+
+    // OCR / ASR：探测 base_url 可达性（厂商 SDK 未接入前的基本校验）
+    if (row.base_url) {
+      const started = Date.now()
+      const resp = await fetch(row.base_url, { method: 'HEAD', signal: AbortSignal.timeout(10000) }).catch(() => null)
+      if (resp && resp.ok) {
+        return ok(res, { pass: true, message: `服务地址可达（${Date.now() - started}ms）。注意：该分类真实调用尚未在代码中接入` })
+      }
+      return ok(res, { pass: false, message: `服务地址探测失败（HTTP ${resp ? resp.status : '不可达'}）` })
+    }
+    return ok(res, { pass: true, message: '凭证已配置。该分类真实调用尚未在代码中接入' })
+  } catch (e) {
+    return ok(res, { pass: false, message: e.message || '测试失败' })
+  }
+}))
+
+// GET /api/services/active  当前各分类运行时（供调试/展示）
+router.get('/active', requirePerm('admin.services.view'), (req, res) => {
+  ok(res, SERVICE_CATEGORIES.map((c) => {
+    const rt = getCategoryRuntime(c.code)
+    return {
+      category: c.code,
+      mode: rt.mode,
+      provider: rt.provider ? { id: rt.provider.id, name: rt.provider.name } : null,
+    }
+  }))
+})
+
+export default router

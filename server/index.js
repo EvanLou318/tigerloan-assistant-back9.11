@@ -2,8 +2,8 @@
 // 技术栈：Node.js + Express + SQLite(better-sqlite3) + JWT
 // 启动：npm run server   （默认端口 3001，前端 vite 已配置代理）
 //
-// AI 能力默认走 Mock Provider（无需任何 key）；
-// 未来接入真实服务：设置 AI_PROVIDER=real 及对应 key，见 server/services/ai/real.js
+// AI 能力默认 auto：管理后台「三方服务」按分类切换 mock / 真实供应商；
+// 也可用环境变量强制：AI_PROVIDER=mock|real，见 server/services/ai/real.js
 
 import express from 'express'
 import cors from 'cors'
@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url'
 import { config } from './config.js'
 import './db.js'
 import { seedIfEmpty } from './seed.js'
+import { ensureRBACSeed } from './rbac.js'
 import { authRequired } from './middleware/auth.js'
 import { fail } from './utils.js'
 import authRoutes from './routes/auth.js'
@@ -22,11 +23,14 @@ import scheduleRoutes from './routes/schedules.js'
 import dashboardRoutes from './routes/dashboard.js'
 import aiRoutes from './routes/ai.js'
 import adminRoutes from './routes/admin.js'
+import serviceRoutes from './routes/services.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // 首次启动播种演示数据
 seedIfEmpty()
+// RBAC 角色权限 + 系统设置增量播种（旧库安全升级）
+ensureRBACSeed()
 
 const app = express()
 app.use(cors())
@@ -43,6 +47,7 @@ app.use('/api/schedules', authRequired, scheduleRoutes)
 app.use('/api/dashboard', authRequired, dashboardRoutes)
 app.use('/api/ai', authRequired, aiRoutes)
 app.use('/api/admin', authRequired, adminRoutes)
+app.use('/api/services', authRequired, serviceRoutes)
 
 // 健康检查
 app.get('/api/health', (req, res) => {

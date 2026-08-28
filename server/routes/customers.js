@@ -4,6 +4,7 @@
 import { Router } from 'express'
 import { db, rowToCustomer, rowToMaterial, rowToSimulation, getMaterialsByCustomer } from '../db.js'
 import { ok, fail, genId, fmtDateTime, BizError } from '../utils.js'
+import { applyMasking } from '../rbac.js'
 
 const router = Router()
 
@@ -17,15 +18,20 @@ function customerWithMaterials(row) {
   return rowToCustomer(row, getMaterialsByCustomer(row.id))
 }
 
+// 读接口统一走脱敏：开关开启且无 unmasked 权限时，手机号/身份证返回掩码
+function maskedCustomer(row, role) {
+  return applyMasking(customerWithMaterials(row), role)
+}
+
 // GET /api/customers  客户列表（含材料）
 router.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM customers WHERE user_id = ? ORDER BY created_at DESC').all(req.user.id)
-  ok(res, rows.map(customerWithMaterials))
+  ok(res, rows.map((row) => maskedCustomer(row, req.user.role)))
 })
 
 // GET /api/customers/:id  客户详情
 router.get('/:id', (req, res) => {
-  ok(res, customerWithMaterials(findCustomerRow(req.params.id, req.user.id)))
+  ok(res, maskedCustomer(findCustomerRow(req.params.id, req.user.id), req.user.role))
 })
 
 // POST /api/customers  新建客户
@@ -61,7 +67,7 @@ router.post('/', (req, res) => {
       Number(b.carValue) || 0, Number(b.expectedAmount) || 0, Number(b.expectedRate) || 0,
       b.employer || '', b.position || '', now, now)
 
-  ok(res, customerWithMaterials(findCustomerRow(id, req.user.id)))
+  ok(res, maskedCustomer(findCustomerRow(id, req.user.id), req.user.role))
 })
 
 // PUT /api/customers/:id  更新客户（全字段，缺失字段保持原值）
@@ -69,6 +75,10 @@ router.put('/:id', (req, res) => {
   const row = findCustomerRow(req.params.id, req.user.id)
   const b = req.body || {}
   const now = fmtDateTime()
+
+  // 防呆：脱敏开启时前端可能回显掩码值（如 138****6688），不能覆盖库里的明文
+  if (typeof b.phone === 'string' && b.phone.includes('*')) delete b.phone
+  if (typeof b.idCard === 'string' && b.idCard.includes('*')) delete b.idCard
 
   db.prepare(`
     UPDATE customers SET
@@ -107,7 +117,7 @@ router.put('/:id', (req, res) => {
       b.position !== undefined ? String(b.position) : row.position,
       now, req.params.id, req.user.id)
 
-  ok(res, customerWithMaterials(findCustomerRow(req.params.id, req.user.id)))
+  ok(res, maskedCustomer(findCustomerRow(req.params.id, req.user.id), req.user.role))
 })
 
 // DELETE /api/customers/:id  删除客户（材料级联删除）

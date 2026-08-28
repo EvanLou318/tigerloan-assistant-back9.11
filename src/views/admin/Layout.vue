@@ -12,7 +12,7 @@
 
       <nav class="admin-nav">
         <router-link
-          v-for="item in navItems"
+          v-for="item in visibleNavItems"
           :key="item.path"
           :to="item.path"
           class="nav-item"
@@ -21,6 +21,7 @@
           <span class="nav-icon">{{ item.icon }}</span>
           <span>{{ item.label }}</span>
         </router-link>
+        <div v-if="!allVisible" class="perm-note">按当前角色权限展示菜单</div>
       </nav>
 
       <div class="sidebar-footer">
@@ -28,7 +29,7 @@
           <div class="avatar">{{ (userInfo?.name || '管')[0] }}</div>
           <div class="user-meta">
             <div class="user-name">{{ userInfo?.name || '管理员' }}</div>
-            <div class="user-role">管理员</div>
+            <div class="user-role">{{ userInfo?.roleName || '管理员' }}</div>
           </div>
         </div>
         <button class="exit-btn" @click="onExit">返回移动端</button>
@@ -60,12 +61,19 @@ const router = useRouter()
 const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null')
 
 const navItems = [
-  { path: '/admin/dashboard', label: '数据看板', icon: '📊' },
-  { path: '/admin/customers', label: '客户管理', icon: '👥' },
-  { path: '/admin/products', label: '产品管理', icon: '📦' },
-  { path: '/admin/schedules', label: '日程管理', icon: '📅' },
-  { path: '/admin/users', label: '用户管理', icon: '🔑' },
+  { path: '/admin/dashboard', label: '数据看板', icon: '📊', perm: 'admin.dashboard.view' },
+  { path: '/admin/customers', label: '客户管理', icon: '👥', perm: 'admin.customers.view' },
+  { path: '/admin/products', label: '产品管理', icon: '📦', perm: 'admin.products.view' },
+  { path: '/admin/schedules', label: '日程管理', icon: '📅', perm: 'admin.schedules.view' },
+  { path: '/admin/users', label: '用户管理', icon: '🔑', perm: 'admin.users.view' },
+  { path: '/admin/security', label: '权限与安全', icon: '🛡️', perm: 'admin.roles.manage' },
+  { path: '/admin/services', label: '三方服务', icon: '🔌', perm: 'admin.services.view' },
 ]
+
+// RBAC：按登录时返回的权限过滤菜单；旧登录态无 permissions 字段则全量展示
+const userPerms = userInfo?.permissions ?? null
+const visibleNavItems = navItems.filter((item) => !userPerms || userPerms.includes(item.perm))
+const allVisible = !userPerms
 
 const pageTitle = computed(() => route.meta.title || '管理后台')
 
@@ -214,6 +222,14 @@ function onExit() {
 .exit-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
+}
+
+.perm-note {
+  margin-top: auto;
+  padding: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  text-align: center;
 }
 
 /* ---------- 内容区 ---------- */
