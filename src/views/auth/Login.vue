@@ -8,7 +8,7 @@
     </div>
 
     <!-- Logo 区域 -->
-    <div class="logo-section">
+    <div class="logo-section anim-item" style="--d: 0s">
       <div class="logo-icon">
         <svg viewBox="0 0 48 48" width="48" height="48">
           <defs>
@@ -28,7 +28,7 @@
 
     <!-- 表单区域 -->
     <div class="form-section">
-      <div class="form-card">
+      <div class="form-card anim-item" style="--d: 0.1s">
         <van-form @submit="onSubmit">
           <div class="form-field">
             <van-field
@@ -254,6 +254,12 @@ async function onSubmit() {
   font-size: 14px;
   color: var(--text-tertiary);
   letter-spacing: 1px;
+}
+
+/* 入场动效：依次浮起 */
+.anim-item {
+  animation: float-up 0.45s cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: var(--d, 0s);
 }
 
 /* 表单区域 */

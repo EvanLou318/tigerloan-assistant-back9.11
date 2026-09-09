@@ -13,13 +13,15 @@
       </div>
 
       <!-- 客户列表 -->
-      <div class="customer-list">
-        <div
-          v-for="customer in store.filteredCustomers"
-          :key="customer.id"
-          class="customer-card"
-          @click="$router.push(`/customers/${customer.id}`)"
-        >
+      <van-pull-refresh v-model="refreshing" @refresh="onRefresh" success-text="已更新">
+        <SkeletonList v-if="store.loading && !refreshing" :count="3" />
+        <div v-else class="customer-list">
+          <div
+            v-for="customer in store.filteredCustomers"
+            :key="customer.id"
+            class="customer-card"
+            @click="$router.push(`/customers/${customer.id}`)"
+          >
           <div class="card-top">
             <div class="customer-avatar" :class="customer.gender">
               {{ customer.name.charAt(0) }}
@@ -76,7 +78,8 @@
         <div v-if="store.filteredCustomers.length === 0" class="empty-state">
           <van-empty description="暂无客户数据" />
         </div>
-      </div>
+        </div>
+      </van-pull-refresh>
 
       <!-- 新增按钮 -->
       <div class="add-btn" @click="$router.push('/customers/create')">
@@ -88,20 +91,30 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import MainLayout from '../../layouts/MainLayout.vue'
+import SkeletonList from '../../components/SkeletonList.vue'
 import { useCustomerStore } from '../../stores/customer'
 import { useScheduleStore } from '../../stores/schedule'
 
 const router = useRouter()
 const store = useCustomerStore()
 const scheduleStore = useScheduleStore()
+const refreshing = ref(false)
 
 onMounted(() => {
-  store.loadCustomers()
+  store.loadCustomers(true)
   scheduleStore.loadSchedules()
 })
+
+async function onRefresh() {
+  try {
+    await Promise.all([store.loadCustomers(true), scheduleStore.loadSchedules(true)])
+  } finally {
+    refreshing.value = false
+  }
+}
 
 // 某客户的未来未完成日程（按开始时间升序）
 function upcomingSchedules(customerId) {
@@ -340,7 +353,7 @@ function getMatchStatusText(customer) {
 
 .add-btn {
   position: fixed;
-  bottom: 70px;
+  bottom: calc(80px + env(safe-area-inset-bottom));
   right: 16px;
   display: flex;
   align-items: center;

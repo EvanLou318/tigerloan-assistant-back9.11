@@ -3,8 +3,7 @@
     <div class="profile-page">
       <!-- 顶部蓝青渐变大色块 -->
       <div class="hero">
-        <div class="hero-nav" @click="$router.back()">
-          <van-icon name="arrow-left" color="#FFFFFF" size="18" />
+        <div class="hero-nav">
           <span class="hero-nav-title">个人中心</span>
         </div>
         <div class="user-row">
@@ -169,10 +168,7 @@ function submitFeedback() {
   align-items: center;
   gap: 6px;
   padding: 6px 0 14px;
-  cursor: pointer;
 }
-
-.hero-nav:active { opacity: 0.8; }
 
 .hero-nav-title {
   font-size: 16px;

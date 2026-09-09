@@ -1,4 +1,8 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { ref } from 'vue'
+
+// 导航方向（驱动页面转场动画）：forward 右滑入 / back 左滑入 / tab 淡切
+export const navDirection = ref('forward')
 
 const routes = [
   {
@@ -134,6 +138,23 @@ router.beforeEach((to, from, next) => {
   } else {
     next()
   }
+})
+
+// 维护路径栈判断前进/返回（hash 模式下 history.state 不可靠，用自有栈）
+const pathStack = []
+router.afterEach((to) => {
+  if (to.meta.tabbar) {
+    navDirection.value = 'tab'
+  } else {
+    const idx = pathStack.lastIndexOf(to.fullPath)
+    if (idx !== -1) {
+      pathStack.splice(idx + 1)
+      navDirection.value = 'back'
+    } else {
+      navDirection.value = 'forward'
+    }
+  }
+  if (!pathStack.includes(to.fullPath)) pathStack.push(to.fullPath)
 })
 
 export default router

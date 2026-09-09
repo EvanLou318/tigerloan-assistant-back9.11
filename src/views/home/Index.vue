@@ -1,24 +1,47 @@
 <template>
   <MainLayout>
     <div class="home-page">
-      <!-- 顶部问候 + 右上角个人中心入口 -->
-      <div class="top-header">
-        <div class="user-text">
-          <div class="user-name">{{ greeting }}，{{ userInfo?.name || '李经理' }}</div>
-          <div class="user-role">
-            <span class="online-dot"></span>贷款经理 · 在线
+      <!-- 渐变头部：问候 + 数据概览 -->
+      <header class="hero">
+        <div class="hero-top">
+          <div class="user-text">
+            <div class="user-name">{{ greeting }}，{{ userInfo?.name || '李经理' }}</div>
+            <div class="user-role">
+              <span class="online-dot"></span>{{ todayText }} · 展业顺利
+            </div>
+          </div>
+          <div class="avatar-entry" @click="$router.push('/profile')">
+            {{ (userInfo?.name || '李').charAt(0) }}
           </div>
         </div>
-        <div class="avatar-entry" @click="$router.push('/profile')">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="8" r="4" fill="#3B82F6" opacity="0.85"/>
-            <path d="M4 20C4 16.7 7.6 14 12 14C16.4 14 20 16.7 20 20" stroke="#3B82F6" stroke-width="2" opacity="0.85" fill="none"/>
-          </svg>
+
+        <!-- 数据概览：半压在渐变上的白卡 -->
+        <div class="stats-card animate-float-up">
+          <div class="stat-cell" @click="$router.push('/schedules')">
+            <div class="stat-num accent">{{ scheduleStore.todayCount }}</div>
+            <div class="stat-lbl">今日日程</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-cell" @click="$router.push('/customers')">
+            <div class="stat-num">{{ customerStore.customers.length }}</div>
+            <div class="stat-lbl">客户</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-cell" @click="$router.push('/products')">
+            <div class="stat-num">{{ productStore.products.length }}</div>
+            <div class="stat-lbl">产品</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-cell" @click="$router.push('/schedules')">
+            <div class="stat-num warn" v-if="scheduleStore.pendingCount > 0">{{ scheduleStore.pendingCount }}</div>
+            <div class="stat-num" v-else>0</div>
+            <div class="stat-lbl">待办</div>
+          </div>
         </div>
-      </div>
+      </header>
 
       <!-- 今日日程 -->
-      <div class="section">
+      <div class="section anim-item" style="--d: 0.05s">
         <div class="section-header">
           <span class="section-title">今日日程</span>
           <span class="section-extra" @click="$router.push('/schedules')">查看全部 ›</span>
@@ -58,13 +81,13 @@
             <rect x="22" y="28" width="16" height="2.5" rx="1" fill="rgba(59,130,246,0.4)" />
             <rect x="22" y="34" width="12" height="2.5" rx="1" fill="rgba(59,130,246,0.4)" />
           </svg>
-          <p>今日暂无日程</p>
+          <p>今日暂无日程，享受轻松的一天</p>
           <van-button size="small" round type="primary" @click="$router.push('/schedules/create')">+ 新建</van-button>
         </div>
       </div>
 
       <!-- 快捷入口 -->
-      <div class="section">
+      <div class="section anim-item" style="--d: 0.12s">
         <div class="section-header">
           <span class="section-title">快捷入口</span>
         </div>
@@ -89,17 +112,23 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
+import { useProductStore } from '../../stores/product'
+import { useCustomerStore } from '../../stores/customer'
 import MainLayout from '../../layouts/MainLayout.vue'
 import ProductMethodSheet from '../../components/ProductMethodSheet.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const scheduleStore = useScheduleStore()
+const productStore = useProductStore()
+const customerStore = useCustomerStore()
 const showMethodSheet = ref(false)
 
-// 从后端拉取最新日程（首页展示今日预览）
+// 首页工作台：日程 / 产品 / 客户 数据同时预热（不强制刷新，靠各页面进入时刷新）
 onMounted(() => {
-  scheduleStore.loadSchedules(true)
+  scheduleStore.loadSchedules()
+  productStore.loadProducts()
+  customerStore.loadCustomers()
 })
 
 const userInfo = authStore.userInfo
@@ -112,6 +141,8 @@ const greeting = computed(() => {
   if (hour < 18) return '下午好'
   return '晚上好'
 })
+
+const todayText = new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
 
 const todayPreview = computed(() => scheduleStore.todaySchedules.slice(0, 3))
 
@@ -151,38 +182,112 @@ function formatTime(iso) {
 <style scoped>
 .home-page {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-base);
   padding-bottom: 20px;
 }
 
-/* 顶部 */
-.top-header {
+/* ============ 渐变头部 ============ */
+.hero {
+  background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+  padding: calc(env(safe-area-inset-top) + 20px) 16px 0;
+  border-radius: 0 0 28px 28px;
+}
+
+.hero-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-page);
-  padding-top: calc(16px + env(safe-area-inset-top));
-  background: transparent;
+  padding-bottom: 18px;
 }
-.avatar-entry {
-  width: 40px;
-  height: 40px;
+
+.user-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.user-role {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.online-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--primary-container);
-  border: none;
+  background: #4ADE80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.25);
+}
+
+.avatar-entry {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: transform 0.15s;
 }
-.avatar-entry:active { transform: scale(0.92); opacity: 0.85; }
-.user-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.user-role { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
-.online-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-success); }
+.avatar-entry:active { transform: scale(0.92); }
 
-/* Section */
-.section { padding: 16px 16px 0; }
+/* 数据概览：半压渐变的白卡 */
+.stats-card {
+  display: flex;
+  align-items: center;
+  background: var(--surface-container-lowest);
+  border-radius: var(--radius-md);
+  padding: 16px 8px;
+  box-shadow: 0 4px 16px rgba(26, 34, 51, 0.1);
+  transform: translateY(24px);
+  margin-bottom: -24px;
+}
+
+.stat-cell {
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+  padding: 2px 0;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+.stat-cell:active { background: var(--surface-container-high); }
+
+.stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'DIN', 'Roboto', sans-serif;
+  line-height: 1.25;
+}
+.stat-num.accent { color: var(--color-primary); }
+.stat-num.warn { color: var(--color-warning); }
+
+.stat-lbl {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--surface-container-high);
+}
+
+/* ============ Section ============ */
+.section { padding: 40px 16px 0; }
+.section:last-child { padding-bottom: 8px; }
+
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .section-title { font-size: 16px; font-weight: 600; color: var(--text-primary); position: relative; padding-left: 10px; }
 .section-title::before {
@@ -194,7 +299,8 @@ function formatTime(iso) {
   border-radius: 2px;
   background: var(--gradient-primary);
 }
-.section-extra { font-size: 12px; color: var(--color-primary); cursor: pointer; }
+.section-extra { font-size: 12px; color: var(--color-primary); cursor: pointer; padding: 4px 0; }
+.section-extra:active { opacity: 0.7; }
 
 /* 今日日程列表 */
 .schedule-list {
@@ -211,7 +317,11 @@ function formatTime(iso) {
   border-radius: var(--radius-md);
   padding: 12px var(--space-card-pad);
   box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform 0.15s ease;
 }
+.schedule-row:active { transform: scale(0.98); background: var(--bg-card-hover); }
+
 .time-col {
   width: 56px;
   flex-shrink: 0;
@@ -242,6 +352,7 @@ function formatTime(iso) {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  box-shadow: var(--shadow-card);
 }
 .empty-today p { font-size: 14px; color: var(--text-secondary); }
 
@@ -250,8 +361,14 @@ function formatTime(iso) {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 16px 8px;
+  box-shadow: var(--shadow-card);
 }
-.quick-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
+.quick-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; padding: 4px 0; border-radius: var(--radius-sm); }
+.quick-item:active { opacity: 0.75; }
+.quick-item:active .quick-icon { transform: scale(0.92); }
 .quick-icon {
   width: 52px;
   height: 52px;
@@ -261,6 +378,13 @@ function formatTime(iso) {
   justify-content: center;
   border: none;
   box-shadow: none;
+  transition: transform 0.15s ease;
 }
 .quick-label { font-size: 12px; color: var(--text-secondary); }
+
+/* 入场动效：依次浮起 */
+.anim-item {
+  animation: float-up 0.4s cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: var(--d, 0s);
+}
 </style>

@@ -1,7 +1,7 @@
 <template>
   <van-config-provider :theme-vars="themeVars">
     <router-view v-slot="{ Component }">
-      <transition name="fade" mode="out-in">
+      <transition :name="transitionName" mode="out-in">
         <component :is="Component" />
       </transition>
     </router-view>
@@ -9,6 +9,19 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { navDirection } from './router'
+
+const route = useRoute()
+
+// Tab 主区间淡切；子页面前进右滑入、返回左滑入
+const transitionName = computed(() => {
+  if (navDirection.value === 'tab') return 'page-fade'
+  if (navDirection.value === 'back') return 'slide-right'
+  return 'slide-left'
+})
+
 const themeVars = {
   // 浅色插画风：白底 + 蓝/青/紫主调
   primaryColor: '#3B82F6',
@@ -42,13 +55,46 @@ const themeVars = {
 }
 </script>
 
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
+<style>
+/* ============ 页面转场（非 scoped，作用于路由组件根节点） ============ */
+
+/* Tab 主区间切换：轻淡 */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
+
+/* 前进：新页从右侧滑入 */
+.slide-left-enter-active {
+  transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.28s ease;
+}
+.slide-left-leave-active {
   transition: opacity 0.2s ease;
 }
-.fade-enter-from,
-.fade-leave-to {
+.slide-left-enter-from {
+  transform: translateX(48px);
+  opacity: 0;
+}
+.slide-left-leave-to {
+  opacity: 0;
+}
+
+/* 返回：页面从左侧滑回 */
+.slide-right-enter-active {
+  transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.28s ease;
+}
+.slide-right-leave-active {
+  transition: opacity 0.2s ease;
+}
+.slide-right-enter-from {
+  transform: translateX(-48px);
+  opacity: 0;
+}
+.slide-right-leave-to {
   opacity: 0;
 }
 </style>

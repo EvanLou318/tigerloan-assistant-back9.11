@@ -1,18 +1,17 @@
 <template>
-  <div class="page-container schedule-page">
-    <van-nav-bar title="日程计划" :border="false" />
-
-    <!-- 顶部渐变装饰 -->
-    <div class="hero-bar">
-      <div class="hero-text">
-        <div class="hero-title">{{ greetingText }}，{{ userInfo?.name || '李经理' }}</div>
-        <div class="hero-sub">
-          <span>今日 {{ scheduleStore.todayCount }} 项日程</span>
-          <span class="dot" v-if="scheduleStore.overdueCount > 0">·</span>
-          <span class="overdue" v-if="scheduleStore.overdueCount > 0">{{ scheduleStore.overdueCount }} 项已逾期</span>
+  <MainLayout>
+    <div class="schedule-page">
+      <!-- 顶部渐变头部 -->
+      <div class="hero-bar">
+        <div class="hero-text">
+          <div class="hero-title">{{ greetingText }}，{{ userInfo?.name || '李经理' }}</div>
+          <div class="hero-sub">
+            <span>今日 {{ scheduleStore.todayCount }} 项日程</span>
+            <span class="dot" v-if="scheduleStore.overdueCount > 0">·</span>
+            <span class="overdue" v-if="scheduleStore.overdueCount > 0">{{ scheduleStore.overdueCount }} 项已逾期</span>
+          </div>
         </div>
-      </div>
-      <div class="hero-illu">
+        <div class="hero-illu">
         <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
           <circle cx="40" cy="40" r="36" fill="rgba(59,130,246,0.08)" />
           <rect x="20" y="22" width="40" height="38" rx="6" fill="rgba(59,130,246,0.18)" />
@@ -39,7 +38,9 @@
     </div>
 
     <!-- 列表 -->
-    <div class="schedule-list">
+    <van-pull-refresh v-model="refreshing" @refresh="onRefresh" success-text="已更新">
+    <SkeletonList v-if="scheduleStore.loading && !refreshing" :count="3" />
+    <div v-else class="schedule-list">
       <div
         v-for="item in displayList"
         :key="item.id"
@@ -90,28 +91,41 @@
         <van-button round type="primary" size="small" @click="$router.push('/schedules/create')">+ 新建日程</van-button>
       </div>
     </div>
+    </van-pull-refresh>
 
     <!-- 新建 FAB -->
     <div class="fab" @click="$router.push('/schedules/create')">
       <van-icon name="plus" size="22" color="#FFFFFF" />
     </div>
-  </div>
+    </div>
+  </MainLayout>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showSuccessToast, showConfirmDialog } from 'vant'
 import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
+import MainLayout from '../../layouts/MainLayout.vue'
+import SkeletonList from '../../components/SkeletonList.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const scheduleStore = useScheduleStore()
+const refreshing = ref(false)
 
 onMounted(() => {
   scheduleStore.loadSchedules(true)
 })
+
+async function onRefresh() {
+  try {
+    await scheduleStore.loadSchedules(true)
+  } finally {
+    refreshing.value = false
+  }
+}
 
 const userInfo = authStore.userInfo
 
@@ -191,12 +205,15 @@ function onToggleDone(item) {
 <style scoped>
 .schedule-page {
   background: var(--bg-base);
-  padding-bottom: 80px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: 16px;
 }
 
 /* 顶部渐变条 */
 .hero-bar {
-  margin: 0 16px 16px;
+  margin: 16px 16px 16px;
   padding: 16px 20px;
   background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
   border-radius: var(--radius-lg);
@@ -353,7 +370,7 @@ function onToggleDone(item) {
 .fab {
   position: fixed;
   right: 16px;
-  bottom: 32px;
+  bottom: calc(80px + env(safe-area-inset-bottom));
   width: 52px;
   height: 52px;
   border-radius: 50%;

@@ -39,48 +39,51 @@
       </div>
 
       <!-- 产品列表 -->
-      <div class="product-list">
-        <div
-          v-for="product in store.filteredProducts"
-          :key="product.id"
-          class="product-card"
-          @click="$router.push(`/products/${product.id}`)"
-        >
-          <div class="card-header">
-            <div class="product-name">{{ product.productName }}</div>
-            <div class="status-badge" :class="product.status">
-              {{ product.status === 'active' ? '启用' : '已禁用' }}
+      <van-pull-refresh v-model="refreshing" @refresh="onRefresh" success-text="已更新">
+        <SkeletonList v-if="store.loading && !refreshing" :count="3" />
+        <div v-else class="product-list">
+          <div
+            v-for="product in store.filteredProducts"
+            :key="product.id"
+            class="product-card"
+            @click="$router.push(`/products/${product.id}`)"
+          >
+            <div class="card-header">
+              <div class="product-name">{{ product.productName }}</div>
+              <div class="status-badge" :class="product.status">
+                {{ product.status === 'active' ? '启用' : '已禁用' }}
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="info-row">
+                <span class="info-label">机构</span>
+                <span class="info-value">{{ product.institution }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">利率</span>
+                <span class="info-value rate">{{ product.minRate }}% - {{ product.maxRate }}%</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">额度</span>
+                <span class="info-value">{{ product.minAmount }} - {{ product.maxAmount }}万</span>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <div class="source-tag">
+                <span class="source-icon" v-html="getSourceIcon(product.source)"></span>
+                {{ getSourceLabel(product.source) }}
+              </div>
+              <div class="card-time">{{ product.createdAt.slice(5, 16) }}</div>
             </div>
           </div>
 
-          <div class="card-body">
-            <div class="info-row">
-              <span class="info-label">机构</span>
-              <span class="info-value">{{ product.institution }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">利率</span>
-              <span class="info-value rate">{{ product.minRate }}% - {{ product.maxRate }}%</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">额度</span>
-              <span class="info-value">{{ product.minAmount }} - {{ product.maxAmount }}万</span>
-            </div>
-          </div>
-
-          <div class="card-footer">
-            <div class="source-tag">
-              <span class="source-icon" v-html="getSourceIcon(product.source)"></span>
-              {{ getSourceLabel(product.source) }}
-            </div>
-            <div class="card-time">{{ product.createdAt.slice(5, 16) }}</div>
+          <div v-if="store.filteredProducts.length === 0" class="empty-state">
+            <van-empty description="暂无产品数据" />
           </div>
         </div>
-
-        <div v-if="store.filteredProducts.length === 0" class="empty-state">
-          <van-empty description="暂无产品数据" />
-        </div>
-      </div>
+      </van-pull-refresh>
 
       <!-- 新增按钮 -->
       <div class="add-btn" @click="showMethodSheet = true">
@@ -98,15 +101,25 @@
 import { ref, onMounted } from 'vue'
 import MainLayout from '../../layouts/MainLayout.vue'
 import ProductMethodSheet from '../../components/ProductMethodSheet.vue'
+import SkeletonList from '../../components/SkeletonList.vue'
 import { useProductStore } from '../../stores/product'
 
 const store = useProductStore()
 const showMethodSheet = ref(false)
+const refreshing = ref(false)
 
 // 每次进入列表从后端拉取最新数据
 onMounted(() => {
   store.loadProducts(true)
 })
+
+async function onRefresh() {
+  try {
+    await store.loadProducts(true)
+  } finally {
+    refreshing.value = false
+  }
+}
 
 function getSourceIcon(source) {
   const icons = {
@@ -273,7 +286,7 @@ function getSourceLabel(source) {
 /* 新增按钮 */
 .add-btn {
   position: fixed;
-  bottom: 70px;
+  bottom: calc(80px + env(safe-area-inset-bottom));
   right: 16px;
   display: flex;
   align-items: center;
