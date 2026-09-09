@@ -2,7 +2,7 @@
   <div class="page-container">
     <van-nav-bar title="产品详情" left-arrow @click-left="$router.back()">
       <template #right>
-        <van-icon name="ellipsis" size="18" @click="showActionSheet = true" />
+        <AppIcon name="more" :size="18" @click="showActionSheet = true" />
       </template>
     </van-nav-bar>
 
@@ -16,7 +16,7 @@
           </div>
         </div>
         <div class="product-institution">
-          <van-icon name="shop-o" size="14" class="inst-icon" />
+          <AppIcon name="bank" :size="14" class="inst-icon" />
           <span>{{ product.institution }}</span>
         </div>
       </div>
@@ -121,7 +121,7 @@ const actions = computed(() => {
   if (!product.value) return []
   return [
     { name: product.value.status === 'active' ? '禁用产品' : '启用产品' },
-    { name: '删除产品', color: '#EF4444' },
+    { name: '删除产品', color: '#F04438' },
   ]
 })
 

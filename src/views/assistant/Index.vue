@@ -5,12 +5,7 @@
     <!-- AI 头部 -->
     <div class="ai-hero">
       <div class="ai-avatar">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke="#FFFFFF" stroke-width="1.6" />
-          <circle cx="9" cy="10" r="1.2" fill="#FFFFFF" />
-          <circle cx="15" cy="10" r="1.2" fill="#FFFFFF" />
-          <path d="M9 14.5C9.8 15.3 10.8 15.7 12 15.7C13.2 15.7 14.2 15.3 15 14.5" stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round" />
-        </svg>
+        <AppIcon name="sparkles" :size="24" color="var(--color-primary)" />
       </div>
       <div class="ai-hero-text">
         <div class="ai-name">小智 · 展业助理</div>
@@ -33,7 +28,7 @@
 
           <!-- 客户卡片 -->
           <div v-if="msg.card?.type === 'customer'" class="card-box">
-            <div class="cb-title">👤 {{ msg.card.data.name }}</div>
+            <div class="cb-title"><AppIcon name="user" :size="14" color="var(--color-primary)" /> {{ msg.card.data.name }}</div>
             <div class="cb-row"><span>手机号</span><b>{{ msg.card.data.phone }}</b></div>
             <div class="cb-row"><span>月收入</span><b>{{ fmtAmt(msg.card.data.monthlyIncome) }}</b></div>
             <div class="cb-row"><span>负债</span><b>{{ fmtAmt(msg.card.data.totalDebt) }}</b></div>
@@ -41,14 +36,14 @@
 
           <!-- 客户新建确认卡 -->
           <div v-if="msg.card?.type === 'customer_create'" class="card-box">
-            <div class="cb-title">👤 新建客户</div>
+            <div class="cb-title"><AppIcon name="user-plus" :size="14" color="var(--color-primary)" /> 新建客户</div>
             <div class="cb-row"><span>姓名</span><b>{{ msg.card.data.name }}</b></div>
             <div class="cb-row"><span>手机号</span><b>{{ msg.card.data.phone }}</b></div>
           </div>
 
           <!-- 资料更新确认卡 -->
           <div v-if="msg.card?.type === 'customer_update'" class="card-box">
-            <div class="cb-title">✏️ 更新客户资料</div>
+            <div class="cb-title"><AppIcon name="edit" :size="14" color="#2563EB" /> 更新客户资料</div>
             <div class="cb-row"><span>客户</span><b>{{ msg.card.data.name }}</b></div>
             <div class="cb-row">
               <span>{{ msg.card.data.fieldLabel }}</span>
@@ -58,7 +53,7 @@
 
           <!-- 产品确认卡 -->
           <div v-if="msg.card?.type === 'product_create'" class="card-box">
-            <div class="cb-title">📦 录入产品</div>
+            <div class="cb-title"><AppIcon name="file-plus" :size="14" color="var(--color-primary)" /> 录入产品</div>
             <div class="cb-row"><span>产品名</span><b>{{ msg.card.data.productName || '待补充' }}</b></div>
             <div class="cb-row"><span>机构</span><b>{{ msg.card.data.institution || '待补充' }}</b></div>
             <div class="cb-row" v-if="msg.card.data.minRate"><span>最低利率</span><b>{{ msg.card.data.minRate }}%</b></div>
@@ -67,7 +62,7 @@
 
           <!-- 日程确认卡 -->
           <div v-if="msg.card?.type === 'schedule_create'" class="card-box">
-            <div class="cb-title">📅 新建日程</div>
+            <div class="cb-title"><AppIcon name="calendar-plus" :size="14" color="var(--color-primary)" /> 新建日程</div>
             <div class="cb-row"><span>标题</span><b>{{ msg.card.data.title }}</b></div>
             <div class="cb-row"><span>时间</span><b>{{ fmtDT(msg.card.data.startTime) }}</b></div>
             <div class="cb-row" v-if="msg.card.data.customerName"><span>关联客户</span><b>{{ msg.card.data.customerName }}</b></div>
@@ -76,7 +71,7 @@
 
           <!-- 日程列表卡 -->
           <div v-if="msg.card?.type === 'schedule_list'" class="card-box">
-            <div class="cb-title">📅 {{ msg.card.data.label }}</div>
+            <div class="cb-title"><AppIcon name="calendar" :size="14" color="var(--color-primary)" /> {{ msg.card.data.label }}</div>
             <div v-for="s in msg.card.data.list" :key="s.id" class="cb-line">
               <span class="cb-time" :class="`p-${s.priority}`">{{ fmtDT(s.startTime) }}</span>
               <span class="cb-text">{{ s.title }}</span>
@@ -86,7 +81,7 @@
 
           <!-- 产品列表卡 -->
           <div v-if="msg.card?.type === 'product_list'" class="card-box">
-            <div class="cb-title">📦 产品库（{{ msg.card.data.total }}）</div>
+            <div class="cb-title"><AppIcon name="grid" :size="14" color="var(--color-primary)" /> 产品库（{{ msg.card.data.total }}）</div>
             <div v-for="p in msg.card.data.list" :key="p.id" class="cb-line">
               <span class="cb-text">{{ p.productName }}</span>
               <span class="cb-rate">{{ p.minRate }}%~{{ p.maxRate }}%</span>
@@ -137,7 +132,7 @@
         </template>
       </van-field>
       <div class="send-btn" :class="{ active: inputText.trim() }" @click="send()">
-        <van-icon name="arrow-up" size="18" color="#FFFFFF" />
+        <AppIcon name="chevron-up" :size="18" color="#FFFFFF" />
       </div>
     </div>
   </div>
@@ -449,7 +444,7 @@ function cancelAction(msg) {
 }
 
 onMounted(() => {
-  pushMsg('ai', '你好，我是小智 👋\n你可以直接用一句话让我完成展业工作：新增客户、更新资料、录入产品、创建日程，或者随时查询信息。')
+  pushMsg('ai', '你好，我是小智\n你可以直接用一句话让我完成展业工作：新增客户、更新资料、录入产品、创建日程，或者随时查询信息。')
 })
 </script>
 
@@ -468,23 +463,24 @@ onMounted(() => {
   gap: 12px;
   margin: 12px 16px;
   padding: 14px 16px;
-  background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
-  border-radius: var(--radius-lg);
-  color: #fff;
-  box-shadow: var(--shadow-primary);
+  background: var(--surface-container-lowest);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
 }
 .ai-avatar {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--primary-container);
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .ai-name { font-size: 16px; font-weight: 700; }
-.ai-status { font-size: 11px; opacity: 0.9; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
-.dot { width: 5px; height: 5px; border-radius: 50%; background: #a7f3d0; }
+.ai-status { font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--color-success); }
 
 /* 消息流 */
 .chat-body {
@@ -503,7 +499,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--blue-100, #DBEAFE), var(--cyan-100, #CFFAFE));
+  background: var(--primary-container);
   color: var(--color-primary);
   font-size: 12px;
   font-weight: 700;
@@ -554,7 +550,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 10px 12px;
 }
-.cb-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--text-primary); }
+.cb-title { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--text-primary); }
 .cb-row {
   display: flex;
   justify-content: space-between;

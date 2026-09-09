@@ -27,10 +27,10 @@ const transitionName = computed(() => {
 
 const themeVars = {
   // 浅色插画风：白底 + 蓝/青/紫主调
-  primaryColor: '#3B82F6',
-  successColor: '#10B981',
-  dangerColor: '#EF4444',
-  warningColor: '#F59E0B',
+  primaryColor: '#2563EB',
+  successColor: '#12B76A',
+  dangerColor: '#F04438',
+  warningColor: '#F79009',
   background: '#F8FAFC',
   background2: '#FFFFFF',
   textColor: '#0F172A',
@@ -43,18 +43,18 @@ const themeVars = {
   navBarTitleTextColor: '#0F172A',
   navBarTextColor: '#0F172A',
   tabbarBackground: 'rgba(255,255,255,0.95)',
-  tabbarItemActiveTextColor: '#3B82F6',
-  buttonPrimaryBackground: '#3B82F6',
-  buttonPrimaryBorderColor: '#3B82F6',
+  tabbarItemActiveTextColor: '#2563EB',
+  buttonPrimaryBackground: '#2563EB',
+  buttonPrimaryBorderColor: '#2563EB',
   buttonPrimaryTextColor: '#FFFFFF',
   fieldInputTextColor: '#0F172A',
   fieldPlaceholderTextColor: '#94A3B8',
   popupBackground: '#FFFFFF',
   actionSheetBackground: '#FFFFFF',
   searchBackground: 'transparent',
-  tabActiveTextColor: '#3B82F6',
-  tagPrimaryColor: '#3B82F6',
-  switchOnBackground: '#3B82F6',
+  tabActiveTextColor: '#2563EB',
+  tagPrimaryColor: '#2563EB',
+  switchOnBackground: '#2563EB',
 }
 </script>
 

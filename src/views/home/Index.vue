@@ -61,26 +61,20 @@
               <div class="i-title">{{ item.title }}</div>
               <div class="i-meta">
                 <span v-if="item.location">
-                  <van-icon name="location-o" size="10" /> {{ item.location }}
+                  <AppIcon name="map-pin" :size="10" /> {{ item.location }}
                 </span>
                 <span v-if="item.customerName">
-                  <van-icon name="contact" size="10" /> {{ item.customerName }}
+                  <AppIcon name="user" :size="10" /> {{ item.customerName }}
                 </span>
               </div>
             </div>
             <div class="arrow-col">
-              <van-icon name="arrow" color="#94A3B8" size="14" />
+              <AppIcon name="chevron-right" :size="14" color="#94A3B8" />
             </div>
           </div>
         </div>
         <div v-else class="empty-today">
-          <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-            <circle cx="30" cy="30" r="26" fill="rgba(59,130,246,0.06)" />
-            <rect x="16" y="20" width="28" height="26" rx="4" fill="rgba(59,130,246,0.1)" />
-            <path d="M22 14V20M38 14V20" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" />
-            <rect x="22" y="28" width="16" height="2.5" rx="1" fill="rgba(59,130,246,0.4)" />
-            <rect x="22" y="34" width="12" height="2.5" rx="1" fill="rgba(59,130,246,0.4)" />
-          </svg>
+          <AppIcon name="calendar" :size="44" class="empty-ic" />
           <p>今日暂无日程，享受轻松的一天</p>
           <van-button size="small" round type="primary" @click="showScheduleSheet = true">+ 新建</van-button>
         </div>
@@ -93,8 +87,8 @@
         </div>
         <div class="quick-grid">
           <div class="quick-item" v-for="item in quickActions" :key="item.label" @click="item.action">
-            <div class="quick-icon" :style="{ background: item.bg }">
-              <span v-html="item.icon"></span>
+            <div class="quick-icon">
+              <AppIcon :name="item.icon" :size="22" color="var(--color-primary)" />
             </div>
             <div class="quick-label">{{ item.label }}</div>
           </div>
@@ -151,30 +145,10 @@ const todayText = new Date().toLocaleDateString('zh-CN', { month: 'long', day: '
 const todayPreview = computed(() => scheduleStore.todaySchedules.slice(0, 3))
 
 const quickActions = [
-  {
-    label: 'AI 助理',
-    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#8B5CF6" stroke-width="1.8"/><circle cx="9" cy="10" r="1.3" fill="#8B5CF6"/><circle cx="15" cy="10" r="1.3" fill="#8B5CF6"/><path d="M9 14.5C9.8 15.3 10.8 15.7 12 15.7C13.2 15.7 14.2 15.3 15 14.5" stroke="#8B5CF6" stroke-width="1.6" stroke-linecap="round"/></svg>',
-    bg: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(6,182,212,0.05))',
-    action: () => router.push('/assistant'),
-  },
-  {
-    label: '新建日程',
-    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 3H18V1H16V3H8V1H6V3H5C3.9 3 3 3.9 3 5V21C3 22.1 3.9 23 5 23H19C20.1 23 21 22.1 21 21V5C21 3.9 20.1 3 19 3ZM17 14H13V18H11V14H7V12H11V8H13V12H17V14Z" fill="#3B82F6"/></svg>',
-    bg: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(6,182,212,0.05))',
-    action: () => { showScheduleSheet.value = true },
-  },
-  {
-    label: '录入产品',
-    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="#06B6D4"/></svg>',
-    bg: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(59,130,246,0.05))',
-    action: () => { showMethodSheet.value = true },
-  },
-  {
-    label: '新建客户',
-    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 12C17.2 12 19 10.2 19 8C19 5.8 17.2 4 15 4C12.8 4 11 5.8 11 8C11 10.2 12.8 12 15 12ZM6 10V7H4V10H1V12H4V15H6V12H9V10H6ZM15 14C12.3 14 7 15.3 7 18V20H23V18C23 15.3 17.7 14 15 14Z" fill="#10B981"/></svg>',
-    bg: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.05))',
-    action: () => router.push('/customers/create'),
-  },
+  { label: 'AI 助理', icon: 'sparkles', action: () => router.push('/assistant') },
+  { label: '新建日程', icon: 'calendar-plus', action: () => { showScheduleSheet.value = true } },
+  { label: '录入产品', icon: 'file-plus', action: () => { showMethodSheet.value = true } },
+  { label: '新建客户', icon: 'user-plus', action: () => router.push('/customers/create') },
 ]
 
 function formatTime(iso) {
@@ -191,32 +165,33 @@ function formatTime(iso) {
   padding-bottom: 20px;
 }
 
-/* ============ 渐变头部 ============ */
+/* ============ 头部：白色面板 + 深色文字（无渐变） ============ */
 .hero {
-  background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
-  padding: calc(env(safe-area-inset-top) + 20px) 16px 24px;
-  border-radius: 0 0 28px 28px;
+  background: var(--surface-container-lowest);
+  padding: calc(env(safe-area-inset-top) + 20px) 16px 16px;
+  border-radius: 0 0 24px 24px;
 }
 
 .hero-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 18px;
+  padding-bottom: 16px;
 }
 
 .user-name {
   font-size: 20px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
 }
 
 .user-role {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   margin-top: 4px;
 }
 
@@ -224,16 +199,15 @@ function formatTime(iso) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #4ADE80;
-  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.25);
+  background: var(--color-success);
 }
 
 .avatar-entry {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
   font-size: 17px;
   font-weight: 700;
   display: flex;
@@ -244,15 +218,14 @@ function formatTime(iso) {
 }
 .avatar-entry:active { transform: scale(0.92); }
 
-/* 数据概览：半压渐变的白卡（负 margin 上移，不依赖 transform，避免与后续内容重叠） */
+/* 数据概览：白卡（与内容同层，靠留白分隔） */
 .stats-card {
   display: flex;
   align-items: center;
   background: var(--surface-container-lowest);
   border-radius: var(--radius-md);
-  padding: 16px 8px;
-  box-shadow: 0 4px 16px rgba(26, 34, 51, 0.1);
-  margin-bottom: -48px;
+  padding: 14px 8px;
+  box-shadow: var(--shadow-card);
 }
 
 .stat-cell {
@@ -288,20 +261,11 @@ function formatTime(iso) {
 }
 
 /* ============ Section ============ */
-.section { padding: 40px 16px 0; }
+.section { padding: 16px 16px 0; }
 .section:last-child { padding-bottom: 8px; }
 
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.section-title { font-size: 16px; font-weight: 600; color: var(--text-primary); position: relative; padding-left: 10px; }
-.section-title::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 50%;
-  transform: translateY(-50%);
-  width: 3px; height: 14px;
-  border-radius: 2px;
-  background: var(--gradient-primary);
-}
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.section-title { font-size: 16px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.2px; }
 .section-extra { font-size: 12px; color: var(--color-primary); cursor: pointer; padding: 4px 0; }
 .section-extra:active { opacity: 0.7; }
 
@@ -358,6 +322,7 @@ function formatTime(iso) {
   box-shadow: var(--shadow-card);
 }
 .empty-today p { font-size: 14px; color: var(--text-secondary); }
+.empty-ic { color: var(--text-tertiary); }
 
 /* 快捷入口 */
 .quick-grid {
@@ -373,9 +338,10 @@ function formatTime(iso) {
 .quick-item:active { opacity: 0.75; }
 .quick-item:active .quick-icon { transform: scale(0.92); }
 .quick-icon {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 14px;
+  background: var(--primary-container);
   display: flex;
   align-items: center;
   justify-content: center;

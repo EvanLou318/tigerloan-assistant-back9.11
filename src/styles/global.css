@@ -10,26 +10,26 @@
   /* ===== M3 表面体系（蓝调 surface） =====
      原则：页面底最深；卡片、输入填充、按压态全部比背景更浅，
            层级靠「越浅越靠上」+ 阴影产生抬升感；输入框靠底线识别。 */
-  --bg-base: #E8EDF5;                 /* surface：页面底（最深的表面） */
+  --bg-base: #F1F3F7;                 /* surface：页面底（中性浅灰，卡片纯白抬升） */
   --surface-container-lowest: #FFFFFF; /* 纯白：弹层/底部导航 */
-  --surface-container-low: #F0F4FA;   /* 卡片 1 级色块（比 base 浅） */
+  --surface-container-low: #F7F8FB;   /* 卡片 1 级色块（比 base 浅） */
   --surface-container: #FFFFFF;       /* 卡片 2 级色块（常用卡片 = 纯白表面） */
-  --surface-container-high: #E5EBF5;  /* 按压态/悬浮态（比 base 浅、比 low 深） */
-  --surface-container-highest: #F4F7FC;/* 输入框激活/更高层级 */
+  --surface-container-high: #E9ECF2;  /* 按压态/悬浮态（比 base 浅、比 low 深） */
+  --surface-container-highest: #F7F8FB;/* 输入框激活/更高层级 */
 
-  /* ===== M3 tonal 色块容器（tinted） ===== */
-  --primary-container: #E0EAFF;       /* 主色 12% 色块 */
-  --on-primary-container: #1D3FA8;    /* 色块上文字 */
-  --secondary-container: #DFF5F8;     /* 青色 12% 色块 */
-  --on-secondary-container: #0B5F74;
-  --tertiary-container: #EEEAFE;      /* 紫色 12% 色块 */
-  --on-tertiary-container: #5B3FA8;
-  --success-container: #D9F5E6;
-  --on-success-container: #0A6B3D;
-  --warning-container: #FFF0D4;
-  --on-warning-container: #8A5A00;
-  --danger-container: #FFE3E3;
-  --on-danger-container: #B3261E;
+  /* ===== tonal 色块容器（tinted，饱和度统一 10~12%） ===== */
+  --primary-container: #E4ECFD;       /* 主色色块 */
+  --on-primary-container: #1B3D8F;    /* 色块上文字 */
+  --secondary-container: #DEF5F3;     /* 青色色块 */
+  --on-secondary-container: #0A5C58;
+  --tertiary-container: #EBE9FD;      /* 紫色色块 */
+  --on-tertiary-container: #4E3BA8;
+  --success-container: #D8F5E6;
+  --on-success-container: #076B3A;
+  --warning-container: #FEF0C7;
+  --on-warning-container: #7A4A00;
+  --danger-container: #FEE4E2;
+  --on-danger-container: #B42318;
 
   /* ===== 兼容旧变量名（卡片默认 = 2 级色块；输入 = 2 级色块/白色） ===== */
   --bg-card: var(--surface-container);
@@ -37,25 +37,25 @@
   --bg-input: var(--surface-container);   /* 表单输入框背景用纯白 */
   --bg-overlay: rgba(15, 23, 42, 0.4);
 
-  /* ===== 主色 ===== */
-  --color-primary: #3B82F6;
-  --color-primary-dark: #2563EB;
-  --color-secondary: #06B6D4;
-  --color-secondary-dark: #0891B2;
-  --color-accent: #8B5CF6;
-  --color-glow: rgba(59, 130, 246, 0.18);
+  /* ===== 主色（单一主色，收敛蓝/青/紫多色渐变） ===== */
+  --color-primary: #2563EB;
+  --color-primary-dark: #1D4ED8;
+  --color-secondary: #0EA5A5;
+  --color-secondary-dark: #0B7F80;
+  --color-accent: #7C6CF0;
+  --color-glow: rgba(37, 99, 235, 0.16);
 
   /* ===== 文字（on-surface） ===== */
-  --text-primary: #1A2233;
-  --text-secondary: #4A5568;
-  --text-tertiary: #94A3B8;
+  --text-primary: #101828;
+  --text-secondary: #475467;
+  --text-tertiary: #98A2B3;
   --text-inverse: #FFFFFF;
 
   /* ===== 功能色 ===== */
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
-  --color-info: #06B6D4;
+  --color-success: #12B76A;
+  --color-warning: #F79009;
+  --color-danger: #F04438;
+  --color-info: #0EA5A5;
 
   /* ===== 线条（仅输入框/极少数场景） ===== */
   --border-color: rgba(26, 34, 51, 0.08);
@@ -63,16 +63,16 @@
   --border-color-soft: rgba(26, 34, 51, 0.06);
   --field-underline: rgba(26, 34, 51, 0.30);
 
-  /* ===== 渐变（仅装饰性大色块） ===== */
-  --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
-  --gradient-card: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(6, 182, 212, 0.03) 100%);
-  --gradient-glow: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+  /* ===== 渐变：统一收敛为纯主色（简洁、无多色渐变装饰） ===== */
+  --gradient-primary: var(--color-primary);
+  --gradient-card: var(--color-primary);
+  --gradient-glow: var(--color-primary);
 
-  /* ===== 阴影（M3 elevation level 1，极轻） ===== */
-  --shadow-1: 0 1px 2px rgba(26, 34, 51, 0.04);
-  --shadow-card: 0 1px 3px rgba(26, 34, 51, 0.05);
+  /* ===== 阴影（elevation 1，极轻） ===== */
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.06);
   --shadow-glow: none;
-  --shadow-primary: 0 4px 12px rgba(59, 130, 246, 0.2);
+  --shadow-primary: 0 4px 12px rgba(37, 99, 235, 0.22);
 
   /* ===== 圆角（M3 形状体系） ===== */
   --radius-sm: 8px;

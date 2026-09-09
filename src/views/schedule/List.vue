@@ -12,16 +12,8 @@
           </div>
         </div>
         <div class="hero-illu">
-        <svg width="64" height="64" viewBox="0 0 80 80" fill="none">
-          <circle cx="40" cy="40" r="36" fill="rgba(255,255,255,0.12)" />
-          <rect x="20" y="22" width="40" height="38" rx="6" fill="rgba(255,255,255,0.28)" />
-          <rect x="24" y="30" width="32" height="4" rx="2" fill="#FFFFFF" />
-          <rect x="24" y="38" width="22" height="4" rx="2" fill="rgba(255,255,255,0.72)" />
-          <rect x="24" y="46" width="28" height="4" rx="2" fill="rgba(255,255,255,0.72)" />
-          <circle cx="58" cy="22" r="8" fill="#FFFFFF" />
-          <path d="M55 22 L57 24 L61 20" stroke="#06B6D4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-        </svg>
-      </div>
+          <AppIcon name="calendar" :size="26" color="var(--color-primary)" />
+        </div>
     </div>
 
     <!-- Tabs -->
@@ -59,35 +51,27 @@
           </div>
           <div class="meta">
             <span v-if="item.location" class="meta-item">
-              <van-icon name="location-o" size="12" /> {{ item.location }}
+              <AppIcon name="map-pin" :size="12" /> {{ item.location }}
             </span>
             <span v-if="item.customerName" class="meta-item">
-              <van-icon name="contact" size="12" /> {{ item.customerName }}
+              <AppIcon name="user" :size="12" /> {{ item.customerName }}
             </span>
             <span v-if="item.reminderTime" class="meta-item">
-              <van-icon name="bell" size="12" /> 提前 {{ getReminderOffset(item.reminderTime, item.startTime) }}
+              <AppIcon name="bell" :size="12" /> 提前 {{ getReminderOffset(item.reminderTime, item.startTime) }}
             </span>
             <span v-if="isOverdue(item)" class="meta-item overdue-tag">已逾期</span>
           </div>
         </div>
         <div class="check-box" @click.stop="onToggleDone(item)">
-          <van-icon :name="item.done ? 'success' : 'circle'" :color="item.done ? '#10B981' : '#CBD5E1'" size="22" />
+          <AppIcon :name="item.done ? 'check-circle' : 'circle'" :color="item.done ? '#12B76A' : '#CBD5E1'" :size="22" />
         </div>
       </div>
 
       <!-- 空状态 -->
       <div v-if="displayList.length === 0" class="empty-state">
-        <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
-          <circle cx="60" cy="60" r="50" fill="rgba(59,130,246,0.06)" />
-          <rect x="30" y="36" width="60" height="54" rx="8" fill="rgba(59,130,246,0.1)" />
-          <rect x="30" y="36" width="60" height="14" rx="8" fill="rgba(59,130,246,0.2)" />
-          <circle cx="42" cy="43" r="3" fill="#3B82F6" />
-          <circle cx="50" cy="43" r="3" fill="#06B6D4" />
-          <circle cx="58" cy="43" r="3" fill="#8B5CF6" />
-          <rect x="38" y="58" width="44" height="3" rx="1.5" fill="rgba(59,130,246,0.3)" />
-          <rect x="38" y="66" width="32" height="3" rx="1.5" fill="rgba(59,130,246,0.3)" />
-          <rect x="38" y="74" width="36" height="3" rx="1.5" fill="rgba(59,130,246,0.3)" />
-        </svg>
+        <div class="empty-ic-wrap">
+          <AppIcon name="calendar" :size="40" color="var(--text-tertiary)" />
+        </div>
         <p class="empty-text">{{ emptyText }}</p>
         <van-button round type="primary" size="small" @click="showMethodSheet = true">+ 新建日程</van-button>
       </div>
@@ -96,7 +80,7 @@
 
     <!-- 新建日程：直接弹层选择录入方式 -->
     <div class="fab" @click="showMethodSheet = true">
-      <van-icon name="plus" size="22" color="#FFFFFF" />
+      <AppIcon name="plus" :size="22" color="#FFFFFF" />
     </div>
 
     <!-- 日程详情底部面板 -->
@@ -108,41 +92,41 @@
             <span class="dp-type" v-html="typeIcon(detailItem.type)"></span>
             <span class="dp-title-text">{{ detailItem.title }}</span>
           </div>
-          <van-icon name="cross" class="dp-close" @click="showDetail = false" />
+          <AppIcon name="close" class="dp-close" @click="showDetail = false" />
         </div>
 
         <div class="dp-tags">
           <span class="dp-tag" :class="`dp-tag-${detailItem.priority}`">{{ detailItem.priority === 'P0' ? '紧急 P0' : detailItem.priority === 'P1' ? '普通 P1' : '低优 P2' }}</span>
           <span class="dp-tag dp-tag-type">{{ typeLabel[detailItem.type] || '待办' }}</span>
           <span class="dp-tag" :class="detailItem.done ? 'dp-tag-done' : 'dp-tag-open'">
-            <van-icon :name="detailItem.done ? 'success' : 'clock-o'" size="12" />
+            <AppIcon :name="detailItem.done ? 'check-circle' : 'clock'" :size="12" />
             {{ detailItem.done ? '已完成' : '未完成' }}
           </span>
         </div>
 
         <div class="dp-info">
           <div class="dp-row">
-            <van-icon name="clock-o" class="dp-ic" />
+            <AppIcon name="clock" class="dp-ic" />
             <span class="dp-lbl">时间</span>
             <span class="dp-val">{{ formatFullDate(detailItem.startTime) }} - {{ formatTime(detailItem.endTime) }}</span>
           </div>
           <div class="dp-row" v-if="detailItem.location">
-            <van-icon name="location-o" class="dp-ic" />
+            <AppIcon name="map-pin" class="dp-ic" />
             <span class="dp-lbl">地点</span>
             <span class="dp-val">{{ detailItem.location }}</span>
           </div>
           <div class="dp-row" v-if="detailItem.customerName">
-            <van-icon name="contact" class="dp-ic" />
+            <AppIcon name="user" class="dp-ic" />
             <span class="dp-lbl">客户</span>
             <span class="dp-val">{{ detailItem.customerName }}</span>
           </div>
           <div class="dp-row" v-if="detailItem.reminderTime">
-            <van-icon name="bell" class="dp-ic" />
+            <AppIcon name="bell" class="dp-ic" />
             <span class="dp-lbl">提醒</span>
             <span class="dp-val">提前 {{ getReminderOffset(detailItem.reminderTime, detailItem.startTime) }}</span>
           </div>
           <div class="dp-row dp-row-note" v-if="detailItem.remark">
-            <van-icon name="notes-o" class="dp-ic" />
+            <AppIcon name="file-text" class="dp-ic" />
             <span class="dp-lbl">备注</span>
             <span class="dp-val">{{ detailItem.remark }}</span>
           </div>
@@ -156,7 +140,7 @@
             loading-text="处理中..."
             @click="markDone(detailItem)"
           >
-            <van-icon name="success" /> 标记完成
+            <AppIcon name="check-circle" /> 标记完成
           </van-button>
           <van-button
             v-else
@@ -166,7 +150,7 @@
             loading-text="处理中..."
             @click="markDone(detailItem)"
           >
-            <van-icon name="replay" /> 恢复未完成
+            <AppIcon name="refresh" /> 恢复未完成
           </van-button>
           <van-button plain round block class="dp-delete" @click="confirmDelete(detailItem)">删除日程</van-button>
         </div>
@@ -231,7 +215,7 @@ function confirmDelete(item) {
     title: '删除日程',
     message: `确定删除「${item.title}」吗？删除后不可恢复。`,
     confirmButtonText: '删除',
-    confirmButtonColor: '#EF4444',
+    confirmButtonColor: '#F04438',
   })
     .then(async () => {
       try {
@@ -308,9 +292,9 @@ function getReminderOffset(reminderIso, startIso) {
 }
 
 function typeIcon(type) {
-  if (type === 'call') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 15.5C18.8 15.5 17.5 15.3 16.4 14.9C16 14.7 15.5 14.8 15.2 15.1L13.5 16.8C11.3 15.7 9.2 13.6 8.1 11.4L9.8 9.7C10.1 9.4 10.2 8.9 10 8.5C9.6 7.4 9.4 6.1 9.4 4.9C9.4 4.4 8.9 4 4.9 4H4.9C4.4 4 4 4.4 4 4.9C4 13.8 11.1 21 20 21C20.5 21 21 20.6 21 20.1V16.6C21 16.1 20.6 15.5 20 15.5Z" fill="#06B6D4"/></svg>'
-  if (type === 'meeting') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 12C14.2 12 16 10.2 16 8C16 5.8 14.2 4 12 4C9.8 4 8 5.8 8 8C8 10.2 9.8 12 12 12ZM12 14C8.7 14 2 15.7 2 19V21H22V19C22 15.7 15.3 14 12 14Z" fill="#8B5CF6"/></svg>'
-  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 16.2L4.8 12L3.4 13.4L9 19L21 7L19.6 5.6L9 16.2Z" fill="#3B82F6"/></svg>'
+  if (type === 'call') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 15.5C18.8 15.5 17.5 15.3 16.4 14.9C16 14.7 15.5 14.8 15.2 15.1L13.5 16.8C11.3 15.7 9.2 13.6 8.1 11.4L9.8 9.7C10.1 9.4 10.2 8.9 10 8.5C9.6 7.4 9.4 6.1 9.4 4.9C9.4 4.4 8.9 4 4.9 4H4.9C4.4 4 4 4.4 4 4.9C4 13.8 11.1 21 20 21C20.5 21 21 20.6 21 20.1V16.6C21 16.1 20.6 15.5 20 15.5Z" fill="#0EA5A5"/></svg>'
+  if (type === 'meeting') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 12C14.2 12 16 10.2 16 8C16 5.8 14.2 4 12 4C9.8 4 8 5.8 8 8C8 10.2 9.8 12 12 12ZM12 14C8.7 14 2 15.7 2 19V21H22V19C22 15.7 15.3 14 12 14Z" fill="#7C6CF0"/></svg>'
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 16.2L4.8 12L3.4 13.4L9 19L21 7L19.6 5.6L9 16.2Z" fill="#2563EB"/></svg>'
 }
 
 async function onToggleDone(item) {
@@ -332,24 +316,33 @@ async function onToggleDone(item) {
   padding-bottom: 16px;
 }
 
-/* 顶部渐变条 */
+/* 顶部信息卡 */
 .hero-bar {
-  margin: 16px 16px 16px;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
-  border-radius: var(--radius-lg);
+  margin: 16px 16px 12px;
+  padding: 14px 16px;
+  background: var(--surface-container-lowest);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #FFFFFF;
-  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
 }
 .hero-text { flex: 1; min-width: 0; }
-.hero-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.hero-sub { font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hero-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.2px; }
+.hero-sub { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .hero-sub .dot { opacity: 0.6; }
-.hero-sub .overdue { background: rgba(255,255,255,0.22); padding: 1px 8px; border-radius: 4px; }
-.hero-illu { flex-shrink: 0; }
+.hero-sub .overdue { background: var(--danger-container); color: var(--on-danger-container); padding: 1px 8px; border-radius: 4px; }
+.hero-illu {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--primary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* Tabs */
 .tabs-wrap {
@@ -374,7 +367,7 @@ async function onToggleDone(item) {
   background: var(--color-primary);
   color: #FFFFFF;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 .tab-count {
   display: inline-block;
@@ -421,7 +414,7 @@ async function onToggleDone(item) {
   justify-content: center;
   padding: 6px 4px;
   border-radius: 10px;
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(37, 99, 235, 0.08);
   position: relative;
 }
 .time-block.prio-P0 { background: var(--danger-container); }
@@ -484,6 +477,17 @@ async function onToggleDone(item) {
 }
 
 /* 空状态 */
+.empty-ic-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--surface-container-low);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
 .empty-state {
   text-align: center;
   padding: 48px 16px;
@@ -503,11 +507,11 @@ async function onToggleDone(item) {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
   z-index: 10;
 }
 .fab:active { transform: scale(0.95); }
@@ -570,7 +574,7 @@ async function onToggleDone(item) {
 .dp-tag-P2 { background: var(--surface-container-high); color: var(--text-secondary); }
 .dp-tag-type { background: var(--surface-container-high); color: var(--text-secondary); }
 .dp-tag-done { background: rgba(16, 185, 129, 0.14); color: #059669; }
-.dp-tag-open { background: rgba(59, 130, 246, 0.12); color: var(--color-primary); }
+.dp-tag-open { background: rgba(37, 99, 235, 0.12); color: var(--color-primary); }
 
 .dp-info {
   background: var(--surface-container);

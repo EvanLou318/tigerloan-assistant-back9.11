@@ -14,7 +14,7 @@
         :class="{ active: isActive(item) }"
       >
         <span class="tab-icon-wrap">
-          <van-icon :name="item.icon" :size="22" />
+          <AppIcon :name="item.icon" :size="22" />
           <span v-if="item.badge && item.badge > 0" class="tab-badge">{{ item.badge > 99 ? '99+' : item.badge }}</span>
         </span>
         <span class="tab-label">{{ item.label }}</span>
@@ -33,10 +33,10 @@ const scheduleStore = useScheduleStore()
 
 // 日程 tab 带未办角标（今日 + 逾期高优提醒）
 const tabs = computed(() => [
-  { to: '/home', label: '首页', icon: 'home-o', match: ['/home'] },
-  { to: '/products', label: '产品', icon: 'apps-o', match: ['/products'] },
-  { to: '/customers', label: '客户', icon: 'friends-o', match: ['/customers'] },
-  { to: '/schedules', label: '日程', icon: 'todo-list-o', match: ['/schedules'], badge: scheduleStore.todayCount },
+  { to: '/home', label: '首页', icon: 'home', match: ['/home'] },
+  { to: '/products', label: '产品', icon: 'grid', match: ['/products'] },
+  { to: '/customers', label: '客户', icon: 'users', match: ['/customers'] },
+  { to: '/schedules', label: '日程', icon: 'calendar', match: ['/schedules'], badge: scheduleStore.todayCount },
 ])
 
 function isActive(item) {
@@ -93,8 +93,7 @@ function isActive(item) {
   justify-content: center;
   width: 48px;
   height: 30px;
-  border-radius: 999px;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
 .tab:active .tab-icon-wrap {
@@ -103,10 +102,6 @@ function isActive(item) {
 
 .tab.active {
   color: var(--color-primary);
-}
-
-.tab.active .tab-icon-wrap {
-  background: var(--primary-container);
 }
 
 .tab-label {

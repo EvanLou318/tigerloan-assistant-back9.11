@@ -7,7 +7,7 @@
       <div class="select-header">
         <div class="select-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-            <path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="#3B82F6"/>
+            <path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="#2563EB"/>
           </svg>
         </div>
         <h3 class="select-title">选择录入方式</h3>
@@ -16,55 +16,47 @@
 
       <div class="method-grid">
         <div class="method-card" @click="selectMethod('text')">
-          <div class="method-icon" style="background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(6,182,212,0.05));">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path d="M5 4V9H10V20H14V9H19V4H5Z" fill="#3B82F6"/>
-            </svg>
+          <div class="method-icon">
+            <AppIcon name="edit" :size="24" color="var(--color-primary)" />
           </div>
           <div class="method-info">
             <div class="method-name">文本录入</div>
             <div class="method-desc">手动填写表单</div>
           </div>
-          <van-icon name="arrow" color="#94A3B8" />
+          <AppIcon name="chevron-right" color="#94A3B8" />
         </div>
 
         <div class="method-card" @click="selectMethod('voice')">
-          <div class="method-icon" style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(59,130,246,0.05));">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path d="M12 14C13.1 14 14 13.1 14 12V6C14 4.9 13.1 4 12 4C10.9 4 10 4.9 10 6V12C10 13.1 10.9 14 12 14ZM17 12C17 14.8 14.8 17 12 17C9.2 17 7 14.8 7 12H5C5 15.3 7.4 18.1 10.5 18.8V22H13.5V18.8C16.6 18.1 19 15.3 19 12H17Z" fill="#06B6D4"/>
-            </svg>
+          <div class="method-icon">
+            <AppIcon name="mic" :size="24" color="var(--color-primary)" />
           </div>
           <div class="method-info">
             <div class="method-name">语音录入</div>
             <div class="method-desc">口述产品信息，AI 自动识别</div>
           </div>
-          <van-icon name="arrow" color="#94A3B8" />
+          <AppIcon name="chevron-right" color="#94A3B8" />
         </div>
 
         <div class="method-card" @click="selectMethod('image')">
-          <div class="method-icon" style="background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(6,182,212,0.05));">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path d="M21 19V5C21 3.9 20.1 3 19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19ZM8.5 13.5L11 16.5L14.5 12L19 18H5L8.5 13.5Z" fill="#3B82F6"/>
-            </svg>
+          <div class="method-icon">
+            <AppIcon name="image" :size="24" color="var(--color-primary)" />
           </div>
           <div class="method-info">
             <div class="method-name">图片录入</div>
             <div class="method-desc">上传产品海报/宣传单照片</div>
           </div>
-          <van-icon name="arrow" color="#94A3B8" />
+          <AppIcon name="chevron-right" color="#94A3B8" />
         </div>
 
         <div class="method-card" @click="selectMethod('pdf')">
-          <div class="method-icon" style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(59,130,246,0.05));">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2ZM15 9V3.5L19.5 9H15Z" fill="#06B6D4"/>
-            </svg>
+          <div class="method-icon">
+            <AppIcon name="file-text" :size="24" color="var(--color-primary)" />
           </div>
           <div class="method-info">
             <div class="method-name">PDF录入</div>
             <div class="method-desc">上传产品说明文档</div>
           </div>
-          <van-icon name="arrow" color="#94A3B8" />
+          <AppIcon name="chevron-right" color="#94A3B8" />
         </div>
       </div>
     </div>
@@ -120,11 +112,11 @@
 
       <div v-if="uploadedFile" class="upload-preview">
         <div class="preview-info">
-          <span class="preview-icon">📄</span>
+          <span class="preview-icon"><AppIcon name="file-text" :size="22" color="var(--color-primary)" /></span>
           <span class="preview-name">{{ uploadedFile }}</span>
         </div>
         <div v-if="ocrProcessing" class="ocr-processing">
-          <van-loading size="20" type="spinner" color="#3B82F6" />
+          <van-loading size="20" type="spinner" color="#2563EB" />
           <span class="processing-text">OCR 识别中...</span>
         </div>
       </div>
@@ -508,6 +500,7 @@ async function onSave() {
   width: 48px;
   height: 48px;
   border-radius: 12px;
+  background: var(--primary-container);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -637,7 +630,7 @@ async function onSave() {
 
 .upload-area:active {
   border-color: var(--color-primary);
-  background: rgba(59, 130, 246, 0.03);
+  background: rgba(37, 99, 235, 0.03);
 }
 
 .upload-text {

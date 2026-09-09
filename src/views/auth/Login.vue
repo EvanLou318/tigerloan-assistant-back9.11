@@ -13,8 +13,8 @@
         <svg viewBox="0 0 48 48" width="48" height="48">
           <defs>
             <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#3B82F6" />
-              <stop offset="100%" stop-color="#06B6D4" />
+              <stop offset="0%" stop-color="#2563EB" />
+              <stop offset="100%" stop-color="#0EA5A5" />
             </linearGradient>
           </defs>
           <path d="M24 4 L42 14 V30 L24 44 L6 30 V14 Z" fill="none" stroke="url(#logoGrad)" stroke-width="2" />
@@ -209,12 +209,7 @@ async function onSubmit() {
 }
 
 .bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  display: none;
 }
 
 /* Logo 区域 */
@@ -242,10 +237,7 @@ async function onSubmit() {
 .logo-title {
   font-size: 28px;
   font-weight: 700;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-primary);
   letter-spacing: 2px;
   margin-bottom: 8px;
 }
@@ -278,14 +270,7 @@ async function onSubmit() {
 }
 
 .form-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 20%;
-  right: 20%;
-  height: 3px;
-  background: var(--gradient-primary);
-  border-radius: 0 0 3px 3px;
+  display: none;
 }
 
 .form-field {

@@ -23,7 +23,7 @@
         <!-- idle：待录音 -->
         <div v-if="step === 'idle'" class="vs-idle">
           <div class="mic-circle idle" @click="start">
-            <van-icon name="mic" size="30" color="#FFFFFF" />
+            <AppIcon name="mic" :size="30" color="#FFFFFF" />
           </div>
           <div class="vs-hint">点击开始说话</div>
         </div>
@@ -32,7 +32,7 @@
         <div v-else-if="step === 'recording'" class="vs-recording">
           <div class="mic-circle recording" @click="stop">
             <span class="mic-wave" v-for="i in 5" :key="i"></span>
-            <van-icon name="mic" size="30" color="#FFFFFF" style="position: relative;" />
+            <AppIcon name="mic" :size="30" color="#FFFFFF" style="position: relative;" />
           </div>
           <div class="vs-hint red">正在聆听… 点击结束</div>
           <div class="vs-timer">{{ recTime }}s<span v-if="recTime >= 18"> 即将自动结束</span></div>
@@ -40,14 +40,14 @@
 
         <!-- transcribing：转写中 -->
         <div v-else-if="step === 'transcribing'" class="vs-transcribing">
-          <van-loading color="#3B82F6" size="34" />
+          <van-loading color="#2563EB" size="34" />
           <div class="vs-hint">语音转写中…</div>
         </div>
 
         <!-- done：结果确认 -->
         <div v-else class="vs-result">
           <div class="vs-result-head">
-            <span class="vs-ok"><van-icon name="passed" size="14" color="#16A34A" /> 识别完成</span>
+            <span class="vs-ok"><AppIcon name="check-circle" :size="14" color="#16A34A" /> 识别完成</span>
             <span class="vs-conf">置信度 {{ confidence }}%</span>
           </div>
           <textarea
@@ -173,7 +173,7 @@ onBeforeUnmount(clearTimer)
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3B82F6, #06B6D4);
+  background: var(--color-primary);
 }
 .vs-field-tag {
   font-size: 12px;
@@ -210,16 +210,16 @@ onBeforeUnmount(clearTimer)
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.28);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
   transition: transform 0.15s ease;
   cursor: pointer;
 }
 .mic-circle:active { transform: scale(0.94); }
 .mic-circle.idle {
-  background: linear-gradient(135deg, #3B82F6, #06B6D4);
+  background: var(--color-primary);
 }
 .mic-circle.recording {
-  background: #EF4444;
+  background: #F04438;
   box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35);
   animation: micPulse 1.4s infinite;
 }
@@ -234,12 +234,12 @@ onBeforeUnmount(clearTimer)
   font-size: 14px;
   color: var(--text-secondary, #475569);
 }
-.vs-hint.red { color: #EF4444; }
+.vs-hint.red { color: #F04438; }
 .vs-timer {
   margin-top: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #EF4444;
+  color: #F04438;
   font-variant-numeric: tabular-nums;
 }
 
@@ -320,9 +320,9 @@ onBeforeUnmount(clearTimer)
   color: var(--text-secondary, #475569);
 }
 .vs-btn.primary {
-  background: linear-gradient(135deg, #3B82F6, #06B6D4);
+  background: var(--color-primary);
   color: #FFFFFF;
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
 }
 
 .vs-transcribing { flex-direction: column; gap: 14px; display: flex; align-items: center; }

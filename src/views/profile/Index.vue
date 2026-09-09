@@ -3,7 +3,7 @@
     <!-- 顶部蓝青渐变大色块 -->
     <div class="hero">
       <div class="hero-nav" @click="router.back()">
-        <van-icon name="arrow-left" color="#FFFFFF" size="18" />
+        <AppIcon name="chevron-left" :size="18" color="var(--text-primary)" />
         <span class="hero-nav-title">个人中心</span>
       </div>
         <div class="user-row">
@@ -12,7 +12,7 @@
             <div class="user-name">{{ userInfo?.name || '李经理' }} <span class="verified">✓ 已认证</span></div>
             <div class="user-phone">{{ userInfo?.phone || '13800138000' }}</div>
           </div>
-          <van-icon name="arrow" color="rgba(255,255,255,0.85)" size="18" />
+          <AppIcon name="chevron-right" :size="18" color="var(--text-tertiary)" />
         </div>
         <div class="stats">
           <div class="stat-cell" @click="$router.push('/products')">
@@ -35,18 +35,18 @@
         <div class="list-title">账户</div>
         <div class="list-card">
           <div class="list-item" @click="$router.push('/change-password')">
-            <div class="li-ic" style="background: rgba(59,130,246,0.12);">
-              <van-icon name="lock" size="20" color="#3B82F6" />
+            <div class="li-ic" style="background: var(--primary-container);">
+              <AppIcon name="lock" :size="20" color="#2563EB" />
             </div>
             <div class="li-text">修改密码</div>
-            <van-icon name="arrow" size="14" color="#94A3B8" />
+            <AppIcon name="chevron-right" :size="14" color="#94A3B8" />
           </div>
           <div class="list-item" @click="showHelp = true">
-            <div class="li-ic" style="background: rgba(245,158,11,0.12);">
-              <van-icon name="question-o" size="20" color="#F59E0B" />
+            <div class="li-ic" style="background: var(--primary-container);">
+              <AppIcon name="help" :size="20" color="var(--color-primary)" />
             </div>
             <div class="li-text">使用帮助</div>
-            <van-icon name="arrow" size="14" color="#94A3B8" />
+            <AppIcon name="chevron-right" :size="14" color="#94A3B8" />
           </div>
         </div>
       </div>
@@ -56,18 +56,18 @@
         <div class="list-title">系统</div>
         <div class="list-card">
           <div class="list-item" @click="showAbout = true">
-            <div class="li-ic" style="background: rgba(6,182,212,0.12);">
-              <van-icon name="info-o" size="20" color="#06B6D4" />
+            <div class="li-ic" style="background: var(--primary-container);">
+              <AppIcon name="info" :size="20" color="var(--color-primary)" />
             </div>
             <div class="li-text">关于智贷助手</div>
             <div class="li-extra">v1.0.0</div>
           </div>
           <div class="list-item" @click="showFeedback = true">
-            <div class="li-ic" style="background: rgba(139,92,246,0.12);">
-              <van-icon name="comment-o" size="20" color="#8B5CF6" />
+            <div class="li-ic" style="background: var(--primary-container);">
+              <AppIcon name="message" :size="20" color="var(--color-primary)" />
             </div>
             <div class="li-text">意见反馈</div>
-            <van-icon name="arrow" size="14" color="#94A3B8" />
+            <AppIcon name="chevron-right" :size="14" color="#94A3B8" />
           </div>
         </div>
       </div>
@@ -158,11 +158,12 @@ function submitFeedback() {
   padding-bottom: 20px;
 }
 
-/* ============ 顶部大色块 ============ */
+/* ============ 顶部面板（白色，与首页一致） ============ */
 .hero {
-  background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
-  padding: calc(env(safe-area-inset-top) + 12px) 16px 24px;
-  color: #fff;
+  background: var(--surface-container-lowest);
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 20px;
+  color: var(--text-primary);
+  border-radius: 0 0 24px 24px;
   position: relative;
 }
 
@@ -192,7 +193,8 @@ function submitFeedback() {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
   border: none;
   font-size: 24px;
   font-weight: 700;
@@ -203,16 +205,17 @@ function submitFeedback() {
 }
 
 .user-text { flex: 1; min-width: 0; }
-.user-name { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.user-name { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 6px; letter-spacing: -0.2px; }
 .verified {
   font-size: 11px;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--success-container);
+  color: var(--on-success-container);
   font-weight: 500;
   letter-spacing: 0.5px;
 }
-.user-phone { font-size: 14px; opacity: 0.85; margin-top: 4px; }
+.user-phone { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
 
 /* 统计行（在色块内） */
 .stats {
@@ -227,9 +230,9 @@ function submitFeedback() {
   padding: 4px 0;
   transition: background 0.15s;
 }
-.stat-cell:active { background: rgba(255, 255, 255, 0.16); }
+.stat-cell:active { background: var(--surface-container-high); }
 .stat-num { font-size: 24px; font-weight: 700; font-family: 'DIN', 'Roboto', sans-serif; line-height: 1.2; }
-.stat-lbl { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.stat-lbl { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
 /* ============ 列表区 ============ */
 .list-section { padding: 0 16px 16px; }

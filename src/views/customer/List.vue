@@ -66,11 +66,11 @@
           <div class="card-footer">
             <div class="footer-tags">
               <div class="materials-tag">
-                <van-icon name="description" size="12" />
+                <AppIcon name="file-text" :size="12" />
                 <span>{{ customer.materials.length }}份资料</span>
               </div>
               <div v-if="upcomingSchedules(customer.id).length > 0" class="schedule-tag" @click.stop="goSchedules">
-                <van-icon name="clock-o" size="12" />
+                <AppIcon name="clock" :size="12" />
                 <span>{{ upcomingSchedules(customer.id).length }}项日程</span>
                 <span class="schedule-next">最近 {{ formatSchTime(upcomingSchedules(customer.id)[0].startTime) }}</span>
               </div>
@@ -87,7 +87,7 @@
 
       <!-- 新增按钮 -->
       <div class="add-btn" @click="$router.push('/customers/create')">
-        <van-icon name="plus" size="20" />
+        <AppIcon name="plus" :size="20" />
         <span>新建客户</span>
       </div>
     </div>
@@ -366,7 +366,7 @@ function getMatchStatusText(customer) {
   padding: 10px 20px;
   background: var(--gradient-primary);
   border-radius: 24px;
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
   color: #FFFFFF;
   font-size: 14px;
   font-weight: 600;

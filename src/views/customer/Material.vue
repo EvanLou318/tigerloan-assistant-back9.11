@@ -6,9 +6,7 @@
     <div v-if="step === 'select'" class="select-step">
       <div class="select-header">
         <div class="select-icon">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-            <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM10 17L6 13L7.41 11.59L10 14.17L16.59 7.58L18 9L10 17Z" fill="#3B82F6"/>
-          </svg>
+          <AppIcon name="user-plus" :size="28" color="var(--color-primary)" />
         </div>
         <h3 class="select-title">补充客户资料</h3>
         <p class="select-desc">选择要录入的材料，AI 自动提取关键信息并合并到档案</p>
@@ -17,15 +15,13 @@
       <!-- 语音口述快捷通道 -->
       <div class="voice-entry" @click="startVoice">
         <div class="voice-entry-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M12 14C13.66 14 15 12.66 15 11V5C15 3.34 13.66 2 12 2C10.34 2 9 3.34 9 5V11C9 12.66 10.34 14 12 14ZM18 11C18 14.53 15.53 17 12 17C8.47 17 6 14.53 6 11H4C4 15.03 7.16 18.43 11 18.93V22H13V18.93C16.84 18.43 20 15.03 20 11H18Z" fill="#8B5CF6"/>
-          </svg>
+          <AppIcon name="mic" :size="22" color="var(--color-primary)" />
         </div>
         <div class="voice-entry-text">
           <div class="voice-entry-title">语音口述</div>
           <div class="voice-entry-desc">面谈 / 电话沟通时，说话即可记录客户信息</div>
         </div>
-        <van-icon name="arrow" size="16" color="#94A3B8" />
+        <AppIcon name="chevron-right" :size="16" color="#94A3B8" />
       </div>
 
       <!-- 材料类型 -->
@@ -37,7 +33,7 @@
           class="material-card"
           @click="selectMaterial(item)"
         >
-          <div class="material-icon">{{ item.icon }}</div>
+          <div class="material-icon"><AppIcon :name="item.icon" :size="22" color="var(--color-primary)" /></div>
           <div class="material-name">{{ item.name }}</div>
           <div class="material-priority" :class="item.priorityClass">{{ item.priority }}</div>
           <div class="material-hint">{{ item.hint }}</div>
@@ -130,7 +126,7 @@
     <div v-else-if="step === 'merge'" class="merge-step">
       <div class="merge-header">
         <div class="ai-badge">
-          <van-icon name="passed" size="14" />
+          <AppIcon name="check-circle" :size="14" />
           AI 提取完成 · 共 {{ mergeFields.length }} 项
         </div>
         <p class="merge-tip">
@@ -162,7 +158,7 @@
                 v-if="field.type === 'bool'"
                 v-model="field.newValueBool"
                 size="22px"
-                active-color="#3B82F6"
+                active-color="#2563EB"
               />
               <input
                 v-else
@@ -174,7 +170,7 @@
             </div>
             <div class="merge-choice">
               <span class="choice-label">采用新值</span>
-              <van-switch v-model="field.checked" size="20px" active-color="#3B82F6" />
+              <van-switch v-model="field.checked" size="20px" active-color="#2563EB" />
             </div>
           </div>
 
@@ -241,7 +237,7 @@ let recordTimer = null
 // ==================== 材料类型定义（含字段映射） ====================
 const materialTypes = [
   {
-    key: 'idcard', name: '身份证', icon: '🪪', priority: 'P0', priorityClass: 'p0', hint: '正反面照片或扫描件',
+    key: 'idcard', name: '身份证', icon: 'user', priority: 'P0', priorityClass: 'p0', hint: '正反面照片或扫描件',
     extract: ocrIdCard,
     sourceName: '身份证OCR',
     mapping: [
@@ -254,7 +250,7 @@ const materialTypes = [
     ],
   },
   {
-    key: 'bankflow', name: '银行流水', icon: '🏦', priority: 'P1', priorityClass: 'p1', hint: 'PDF或截图，近6个月',
+    key: 'bankflow', name: '银行流水', icon: 'bank', priority: 'P1', priorityClass: 'p1', hint: 'PDF或截图，近6个月',
     extract: ocrBankStatement,
     sourceName: '银行流水OCR',
     mapping: [
@@ -264,7 +260,7 @@ const materialTypes = [
     ],
   },
   {
-    key: 'credit', name: '征信报告', icon: '📊', priority: 'P0', priorityClass: 'p0', hint: '央行征信，多页自动拼接',
+    key: 'credit', name: '征信报告', icon: 'chart', priority: 'P0', priorityClass: 'p0', hint: '央行征信，多页自动拼接',
     extract: ocrCreditReport,
     sourceName: '征信报告OCR',
     mapping: [
@@ -277,7 +273,7 @@ const materialTypes = [
     ],
   },
   {
-    key: 'income', name: '收入证明', icon: '💼', priority: 'P1', priorityClass: 'p1', hint: '公司开具的收入证明',
+    key: 'income', name: '收入证明', icon: 'briefcase', priority: 'P1', priorityClass: 'p1', hint: '公司开具的收入证明',
     extract: ocrIncomeProof,
     sourceName: '收入证明OCR',
     mapping: [
@@ -287,7 +283,7 @@ const materialTypes = [
     ],
   },
   {
-    key: 'social', name: '社保公积金', icon: '🏘️', priority: 'P1', priorityClass: 'p1', hint: '社保/公积金缴纳记录',
+    key: 'social', name: '社保公积金', icon: 'shield', priority: 'P1', priorityClass: 'p1', hint: '社保/公积金缴纳记录',
     extract: ocrSocialSecurity,
     sourceName: '社保公积金OCR',
     mapping: [
@@ -297,7 +293,7 @@ const materialTypes = [
     ],
   },
   {
-    key: 'property', name: '房产证', icon: '🏠', priority: 'P2', priorityClass: 'p2', hint: '不动产权证书',
+    key: 'property', name: '房产证', icon: 'home', priority: 'P2', priorityClass: 'p2', hint: '不动产权证书',
     extract: ocrProperty,
     sourceName: '房产证OCR',
     mapping: [
@@ -306,7 +302,7 @@ const materialTypes = [
     ],
   },
   {
-    key: 'license', name: '营业执照', icon: '📄', priority: 'P2', priorityClass: 'p2', hint: '企业营业执照',
+    key: 'license', name: '营业执照', icon: 'file-text', priority: 'P2', priorityClass: 'p2', hint: '企业营业执照',
     extract: ocrBusinessLicense,
     sourceName: '营业执照OCR',
     mapping: [
@@ -696,8 +692,10 @@ onMounted(() => {
 }
 
 .material-icon {
-  font-size: 24px;
-  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
 }
 
 .material-name {
@@ -754,7 +752,7 @@ onMounted(() => {
 }
 
 .material-type-tag {
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(37, 99, 235, 0.12);
   color: var(--color-primary);
 }
 
@@ -781,7 +779,7 @@ onMounted(() => {
 
 .upload-area:active {
   border-color: var(--color-primary);
-  background: rgba(59, 130, 246, 0.03);
+  background: rgba(37, 99, 235, 0.03);
 }
 
 .upload-text {
@@ -875,7 +873,7 @@ onMounted(() => {
 .confidence-tag {
   font-size: 11px;
   padding: 2px 8px;
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(37, 99, 235, 0.12);
   color: var(--color-primary);
   border-radius: 4px;
 }

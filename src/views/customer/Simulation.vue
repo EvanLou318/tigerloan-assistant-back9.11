@@ -9,7 +9,7 @@
     <div v-if="customer" class="simulation-page">
       <!-- 提示 -->
       <div class="tip-banner">
-        <van-icon name="info-o" size="14" color="#06B6D4" />
+        <AppIcon name="info" :size="14" color="#0EA5A5" />
         <span>推演模式下的调整不会影响客户真实档案</span>
       </div>
 
@@ -80,7 +80,7 @@
           <div class="adjust-item slider-item">
             <span class="adjust-label">信用卡使用率</span>
             <div class="adjust-control">
-              <van-slider v-model="simData.creditCardUsage" :min="0" :max="100" :step="5" style="width: 120px;" bar-height="4px" active-color="#3B82F6" />
+              <van-slider v-model="simData.creditCardUsage" :min="0" :max="100" :step="5" style="width: 120px;" bar-height="4px" active-color="#2563EB" />
               <span class="adjust-unit">{{ simData.creditCardUsage }}%</span>
             </div>
           </div>
@@ -156,7 +156,7 @@
           <div class="change-item" v-for="(change, key) in changes" :key="key">
             <span class="change-field">{{ fieldLabels[key] || key }}</span>
             <span class="change-old">{{ formatValue(key, change.old) }}</span>
-            <van-icon name="arrow" size="12" color="#475569" />
+            <AppIcon name="chevron-right" :size="12" color="#475569" />
             <span class="change-new" :class="change.new > change.old ? 'up' : 'down'">{{ formatValue(key, change.new) }}</span>
           </div>
         </div>
@@ -196,7 +196,7 @@
             <div class="result-institution">{{ item.institution }}</div>
             <div class="result-reason" v-for="cond in item.failedConditions" :key="cond.condition">
               <span class="cross">✕</span> {{ cond.condition }}（{{ cond.value }}）
-              <div v-if="cond.suggestion" class="suggestion">💡 {{ cond.suggestion }}</div>
+              <div v-if="cond.suggestion" class="suggestion">{{ cond.suggestion }}</div>
             </div>
           </div>
         </div>
@@ -470,14 +470,7 @@ onMounted(async () => {
 
 .section-title::before {
   content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 14px;
-  border-radius: 2px;
-  background: var(--gradient-primary);
+  display: none;
 }
 
 .section-desc {
@@ -532,7 +525,7 @@ onMounted(async () => {
 .changed-tag {
   font-size: 11px;
   padding: 1px 6px;
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(37, 99, 235, 0.12);
   color: var(--color-primary);
   border-radius: 4px;
 }

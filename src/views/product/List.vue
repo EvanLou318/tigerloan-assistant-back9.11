@@ -91,7 +91,7 @@
 
       <!-- 新增按钮 -->
       <div class="add-btn" @click="showMethodSheet = true">
-        <van-icon name="plus" size="20" />
+        <AppIcon name="plus" :size="20" />
         <span>录入产品</span>
       </div>
 
@@ -299,7 +299,7 @@ function getSourceLabel(source) {
   padding: 10px 20px;
   background: var(--gradient-primary);
   border-radius: 24px;
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
   color: #FFFFFF;
   font-size: 14px;
   font-weight: 600;

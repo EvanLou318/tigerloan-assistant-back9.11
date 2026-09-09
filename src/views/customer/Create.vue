@@ -6,11 +6,11 @@
       <!-- 录入方式选择 -->
       <div class="mode-switch">
         <div class="mode-item" :class="{ active: mode === 'manual' }" @click="switchMode('manual')">
-          <van-icon name="edit" size="16" />
+          <AppIcon name="edit" :size="16" />
           <span>手动录入</span>
         </div>
         <div class="mode-item" :class="{ active: mode === 'voice' }" @click="switchMode('voice')">
-          <van-icon name="volume-o" size="16" />
+          <AppIcon name="volume" :size="16" />
           <span>语音录入</span>
         </div>
       </div>
@@ -21,7 +21,7 @@
         <div class="guide-banner">
           <div class="guide-icon">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="#3B82F6"/>
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="#2563EB"/>
             </svg>
           </div>
           <div class="guide-text">
@@ -88,7 +88,7 @@
                 :class="{ selected: form.source === s.key }"
                 @click="form.source = s.key"
               >
-                <span class="source-icon">{{ s.icon }}</span>
+                <span class="source-icon"><AppIcon :name="s.icon" :size="16" color="var(--color-primary)" /></span>
                 <span class="source-name">{{ s.name }}</span>
               </div>
             </div>
@@ -127,7 +127,7 @@
         <div class="voice-guide" v-if="voiceStep === 'idle'">
           <div class="voice-guide-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z" fill="#3B82F6"/>
+              <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z" fill="#2563EB"/>
             </svg>
           </div>
           <div class="voice-guide-text">
@@ -141,7 +141,7 @@
           <!-- idle：开始录音 -->
           <template v-if="voiceStep === 'idle'">
             <div class="mic-btn" @click="startRecord">
-              <van-icon name="mic" size="34" color="#071a17" />
+              <AppIcon name="mic" :size="34" color="#071a17" />
             </div>
             <div class="stage-tip">
               点击开始录音，建议这样口述：<br>
@@ -155,7 +155,7 @@
               <span class="pulse p1"></span>
               <span class="pulse p2"></span>
               <span class="pulse p3"></span>
-              <van-icon name="stop" size="28" color="#ffffff" class="stop-icon" />
+              <AppIcon name="stop" :size="28" color="#ffffff" class="stop-icon" />
             </div>
             <div class="record-time">{{ recordTime }}s</div>
             <div class="stage-tip">正在录音，点击停止结束并开始识别</div>
@@ -164,10 +164,10 @@
           <!-- transcribing：语音转写 -->
           <template v-else-if="voiceStep === 'transcribing'">
             <div class="ai-anim">
-              <van-loading color="#3B82F6" size="36" vertical>语音转写中...</van-loading>
+              <van-loading color="#2563EB" size="36" vertical>语音转写中...</van-loading>
             </div>
             <div class="transcript-box" v-if="transcript">
-              <van-icon name="chat-o" color="#3B82F6" size="14" />
+              <AppIcon name="message" :size="14" color="#2563EB" />
               <span>{{ transcript }}</span>
             </div>
           </template>
@@ -175,7 +175,7 @@
           <!-- analyzing：AI 识别资料类型 -->
           <template v-else-if="voiceStep === 'analyzing'">
             <div class="ai-anim">
-              <van-loading color="#3B82F6" size="36" vertical>AI 正在识别资料类型并提取信息...</van-loading>
+              <van-loading color="#2563EB" size="36" vertical>AI 正在识别资料类型并提取信息...</van-loading>
             </div>
             <div class="type-chips" v-if="recognizedTypes.length">
               <span class="type-chip" v-for="(t, i) in recognizedTypes" :key="t">
@@ -189,7 +189,7 @@
             <div class="ai-result-card">
               <div class="result-header">
                 <div class="result-title">
-                  <van-icon name="passed" color="#3B82F6" size="18" />
+                  <AppIcon name="check-circle" :size="18" color="#2563EB" />
                   <span>AI 识别结果</span>
                 </div>
                 <div class="result-summary">{{ aiSummary }}</div>
@@ -285,12 +285,12 @@ const genderColumns = [
 ]
 
 const sources = [
-  { key: 'friend', name: '朋友介绍', icon: '🤝' },
-  { key: 'telemarketing', name: '电话营销', icon: '📞' },
-  { key: 'walkin', name: '门店进件', icon: '🏪' },
-  { key: 'online', name: '线上渠道', icon: '🌐' },
-  { key: 'referral', name: '老客转介绍', icon: '🔁' },
-  { key: 'other', name: '其他', icon: '📌' },
+  { key: 'friend', name: '朋友介绍', icon: 'users' },
+  { key: 'telemarketing', name: '电话营销', icon: 'phone' },
+  { key: 'walkin', name: '门店进件', icon: 'bank' },
+  { key: 'online', name: '线上渠道', icon: 'link' },
+  { key: 'referral', name: '老客转介绍', icon: 'refresh' },
+  { key: 'other', name: '其他', icon: 'tag' },
 ]
 
 /* ============ 手动录入 ============ */
@@ -673,11 +673,11 @@ async function submitCustomer(data) {
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3B82F6, #06B6D4);
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 28px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 8px 28px rgba(37, 99, 235, 0.35);
   cursor: pointer;
   transition: transform 0.15s;
 }
@@ -688,8 +688,8 @@ async function submitCustomer(data) {
 
 /* 录音中 */
 .mic-btn.recording {
-  background: linear-gradient(135deg, #ff5c5c, #e03e3e);
-  box-shadow: 0 8px 28px rgba(255, 92, 92, 0.35);
+  background: var(--color-danger);
+  box-shadow: 0 8px 28px rgba(240, 68, 56, 0.35);
   position: relative;
 }
 

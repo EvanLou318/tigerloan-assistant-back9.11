@@ -2,7 +2,7 @@
   <div class="page-container">
     <van-nav-bar title="AI匹配" left-arrow @click-left="$router.back()">
       <template #right>
-        <van-icon name="share-o" size="18" @click="showShareSheet = true" />
+        <AppIcon name="share" :size="18" @click="showShareSheet = true" />
       </template>
     </van-nav-bar>
 
@@ -45,7 +45,7 @@
       <!-- 准入产品 -->
       <div v-if="matchResult.approved.length > 0" class="section">
         <div class="section-header">
-          <span class="section-title">✅ 准入产品</span>
+          <span class="section-title"><AppIcon name="check-circle" :size="15" color="#12B76A" /> 准入产品</span>
           <span class="section-count">{{ matchResult.approved.length }}款</span>
         </div>
         <div class="product-list">
@@ -90,7 +90,7 @@
       <!-- 拒贷产品 -->
       <div v-if="matchResult.rejected.length > 0" class="section">
         <div class="section-header">
-          <span class="section-title">❌ 拒贷产品</span>
+          <span class="section-title"><AppIcon name="x-circle" :size="15" color="#F04438" /> 拒贷产品</span>
           <span class="section-count">{{ matchResult.rejected.length }}款</span>
         </div>
         <div class="product-list">
@@ -127,7 +127,7 @@
           重新匹配
         </van-button>
         <van-button round type="primary" @click="showShareSheet = true">
-          <van-icon name="share-o" /> 分享结果
+          <AppIcon name="share" /> 分享结果
         </van-button>
       </div>
     </div>
@@ -304,16 +304,6 @@ onMounted(async () => {
   box-shadow: var(--shadow-card);
 }
 
-.result-summary::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--gradient-primary);
-}
-
 .summary-item {
   flex: 1;
   text-align: center;
@@ -334,10 +324,7 @@ onMounted(async () => {
 }
 
 .summary-value.best {
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-primary);
 }
 
 .summary-label {
@@ -366,6 +353,9 @@ onMounted(async () => {
 }
 
 .section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
@@ -416,7 +406,7 @@ onMounted(async () => {
 
 .match-card.best {
   background: var(--primary-container);
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.18);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.18);
 }
 
 .best-badge {
@@ -425,7 +415,7 @@ onMounted(async () => {
   right: 10px;
   font-size: 11px;
   padding: 2px 8px;
-  background: var(--gradient-primary);
+  background: var(--color-primary);
   color: #FFFFFF;
   border-radius: 4px;
   font-weight: 600;

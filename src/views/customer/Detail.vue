@@ -3,7 +3,7 @@
     <van-nav-bar title="客户档案" left-arrow @click-left="$router.back()">
       <template #right>
         <span class="nav-edit-btn" @click="openEdit">
-          <van-icon name="edit" size="14" /> 编辑
+          <AppIcon name="edit" :size="14" /> 编辑
         </span>
       </template>
     </van-nav-bar>
@@ -33,7 +33,7 @@
         <div class="completeness-bar">
           <div class="completeness-top">
             <span class="completeness-label">
-              <van-icon name="records" size="13" color="#3B82F6" />
+              <AppIcon name="list" :size="13" color="#2563EB" />
               资料完整度
             </span>
             <span class="completeness-num">{{ completeness }}%</span>
@@ -42,7 +42,7 @@
             <div class="completeness-fill" :style="{ width: completeness + '%' }"></div>
           </div>
           <p v-if="missingMaterials.length > 0" class="missing-tip" @click="$router.push(`/customers/${customer.id}/materials`)">
-            待补充：{{ missingMaterials.join('、') }} <van-icon name="arrow" size="10" />
+            待补充：{{ missingMaterials.join('、') }} <AppIcon name="chevron-right" :size="10" />
           </p>
           <p v-else class="missing-tip done">资料已齐全，可以放心匹配产品</p>
         </div>
@@ -73,13 +73,13 @@
       <!-- 补充资料入口 -->
       <div class="material-entry" @click="$router.push(`/customers/${customer.id}/materials`)">
         <div class="entry-icon">
-          <van-icon name="add-o" size="18" color="#3B82F6" />
+          <AppIcon name="plus" :size="18" color="#2563EB" />
         </div>
         <div class="entry-text">
           <div class="entry-title">补充客户资料</div>
           <div class="entry-desc">拍照 / 上传 / 语音口述，AI 自动提取并合并到档案</div>
         </div>
-        <van-icon name="arrow" size="16" color="#94A3B8" />
+        <AppIcon name="chevron-right" :size="16" color="#94A3B8" />
       </div>
 
       <!-- 材料列表 -->
@@ -91,7 +91,7 @@
         <div class="material-list">
           <div class="material-item" v-for="mat in customer.materials" :key="mat.id" @click="openMaterial(mat)">
             <div class="mat-icon">
-              <van-icon name="description" size="16" color="#3B82F6" />
+              <AppIcon name="file-text" :size="16" color="#2563EB" />
             </div>
             <div class="mat-info">
               <div class="mat-name">{{ mat.type }}</div>
@@ -102,7 +102,7 @@
             </div>
           </div>
           <div v-if="customer.materials.length === 0" class="material-empty">
-            <van-icon name="description" size="28" color="#94A3B8" />
+            <AppIcon name="file-text" :size="28" color="#94A3B8" />
             <p>暂无材料，点击上方「补充客户资料」录入身份证、流水等材料</p>
           </div>
         </div>
@@ -112,14 +112,14 @@
       <div class="section" v-for="group in infoGroups" :key="group.title">
         <div class="section-header" @click="toggleGroup(group.key)">
           <span class="section-title">{{ group.title }}</span>
-          <van-icon :name="expandedGroups[group.key] ? 'arrow-up' : 'arrow-down'" size="14" color="#475569" />
+          <AppIcon :name="expandedGroups[group.key] ? 'chevron-up' : 'chevron-down'" :size="14" color="#475569" />
         </div>
         <div v-show="expandedGroups[group.key]" class="info-list">
           <div class="info-row" v-for="field in group.fields" :key="field.key">
             <span class="info-label">{{ field.label }}</span>
             <span class="info-value" :class="field.class">{{ field.value }}</span>
             <span class="info-source" v-if="field.source" @click="showSource(field)">
-              <van-icon name="search" size="12" color="#06B6D4" />
+              <AppIcon name="search" :size="12" color="#0EA5A5" />
             </span>
           </div>
         </div>
@@ -134,7 +134,7 @@
               class="sch-add-btn"
               @click="showScheduleSheet = true"
             >
-              <van-icon name="plus" size="12" /> 新建日程
+              <AppIcon name="plus" :size="12" /> 新建日程
             </span>
             <span class="section-extra" v-if="upcomingSchedules.length > 0" @click="$router.push('/schedules')">全部 ›</span>
           </div>
@@ -148,11 +148,11 @@
             <div class="sch-info">
               <div class="sch-title">{{ sch.title }}</div>
               <div class="sch-meta">
-                <span v-if="sch.location">📍 {{ sch.location }}</span>
-                <span v-if="sch.reminderTime">⏰ 提醒已设</span>
+                <span v-if="sch.location"><AppIcon name="map-pin" :size="11" /> {{ sch.location }}</span>
+                <span v-if="sch.reminderTime"><AppIcon name="bell" :size="11" /> 提醒已设</span>
               </div>
             </div>
-            <van-icon name="arrow" size="14" color="#94A3B8" />
+            <AppIcon name="chevron-right" :size="14" color="#94A3B8" />
           </div>
         </div>
         <div class="sch-empty" v-else>
@@ -164,7 +164,7 @@
             plain
             @click="showScheduleSheet = true"
           >
-            <van-icon name="plus" /> 为 TA 安排日程
+            <AppIcon name="plus" /> 为 TA 安排日程
           </van-button>
         </div>
       </div>
@@ -197,7 +197,7 @@
           场景推演
         </van-button>
         <van-button round type="primary" @click="$router.push(`/customers/${customer.id}/match`)">
-          <van-icon name="search" /> 匹配产品
+          <AppIcon name="search" /> 匹配产品
         </van-button>
       </div>
     </div>
@@ -221,7 +221,7 @@
           </div>
           <div class="source-preview">
             <div class="preview-placeholder">
-              <van-icon name="photo-o" size="32" color="#94A3B8" />
+              <AppIcon name="image" :size="32" color="#94A3B8" />
               <span>原始材料截图</span>
             </div>
           </div>
@@ -237,7 +237,7 @@
       <div class="mat-viewer" v-if="activeMaterial">
         <div class="mv-header">
           <div class="mv-title">
-            <van-icon name="description" size="16" color="#3B82F6" />
+            <AppIcon name="file-text" :size="16" color="#2563EB" />
             <span>{{ activeMaterial.type }}</span>
           </div>
           <div class="mv-conf" :class="{ low: activeMaterial.confidence < 0.85 }">
@@ -248,7 +248,7 @@
         <!-- 模拟材料预览 -->
         <div class="mv-preview">
           <div class="mv-preview-icon">
-            <van-icon :name="activeMaterial.source === 'photo' ? 'photo-o' : (activeMaterial.source === 'voice' ? 'volume-o' : 'orders-o')" size="36" color="#3B82F6" />
+            <AppIcon :name="activeMaterial.source === 'photo' ? 'image' : (activeMaterial.source === 'voice' ? 'volume' : 'file-text')" :size="36" color="#2563EB" />
           </div>
           <div class="mv-preview-name">{{ activeMaterial.type }}（演示数据）</div>
           <div class="mv-fields">
@@ -288,7 +288,7 @@
       <div class="edit-popup" v-if="customer">
         <div class="ep-header">
           <span class="ep-title">编辑客户信息</span>
-          <van-icon name="cross" size="18" color="#94A3B8" @click="showEditPopup = false" />
+          <AppIcon name="close" :size="18" color="#94A3B8" @click="showEditPopup = false" />
         </div>
 
         <div class="ep-form">
@@ -713,7 +713,7 @@ function confirmRemoveMaterial() {
     title: '删除材料',
     message: `确定删除「${activeMaterial.value?.type}」吗？删除后可通过补充资料重新录入。`,
     confirmButtonText: '删除',
-    confirmButtonColor: '#EF4444',
+    confirmButtonColor: '#F04438',
   })
     .then(() => {
       store.removeMaterial(customer.value.id, activeMaterial.value.id)
@@ -998,7 +998,7 @@ function showSource(field) {
   background: var(--gradient-primary);
   border-radius: 3px;
   transition: width 0.5s ease;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.5);
 }
 
 .missing-tip {
@@ -1037,7 +1037,7 @@ function showSource(field) {
   width: 36px;
   height: 36px;
   border-radius: var(--radius-sm);
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(37, 99, 235, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1451,15 +1451,7 @@ function showSource(field) {
 }
 
 .ep-group-title::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 13px;
-  border-radius: 2px;
-  background: var(--gradient-primary);
+  display: none;
 }
 
 .ep-group-title em {

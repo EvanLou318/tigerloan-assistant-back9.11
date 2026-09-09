@@ -25,10 +25,10 @@
 
       <div class="bottom-actions">
         <van-button v-if="!isRecording && !asrResult" round block type="primary" @click="startRecording">
-          <van-icon name="play" /> 开始录音
+          <AppIcon name="play" /> 开始录音
         </van-button>
         <van-button v-if="isRecording" round block type="danger" @click="stopRecording">
-          <van-icon name="stop" /> 停止录音
+          <AppIcon name="stop" /> 停止录音
         </van-button>
         <van-button v-if="asrResult" round block type="primary" :loading="aiProcessing" loading-text="AI 提取中..." @click="processVoice">
           AI 提取日程
@@ -45,7 +45,7 @@
         <div class="hw-header">
           <span class="hw-title">手写便签</span>
           <button class="tool-btn" @click="clearCanvas">
-            <van-icon name="delete-o" size="14" /> 清空
+            <AppIcon name="trash" :size="14" /> 清空
           </button>
         </div>
         <canvas
@@ -68,7 +68,7 @@
           loading-text="AI 识别中..."
           @click="processHandwriting"
         >
-          <van-icon name="scan" /> AI 识别并生成日程
+          <AppIcon name="scan" /> AI 识别并生成日程
         </van-button>
       </div>
     </div>
@@ -147,7 +147,7 @@
               <div class="cp-name">{{ c.name }}</div>
               <div class="cp-phone">{{ c.phone }}</div>
             </div>
-            <van-icon v-if="c.id === form.customerId" name="success" color="#3B82F6" size="18" />
+            <AppIcon name="check-circle" :size="18" color="#2563EB" v-if="c.id === form.customerId" />
           </div>
           <div v-if="filteredCustomers.length === 0" class="cp-empty">未找到匹配的客户</div>
         </div>
@@ -677,7 +677,7 @@ onBeforeUnmount(() => {
 }
 .asr-label .conf {
   font-size: 11px;
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(37, 99, 235, 0.12);
   color: var(--color-primary);
   padding: 1px 8px;
   border-radius: 8px;
@@ -723,10 +723,10 @@ onBeforeUnmount(() => {
   display: block;
   width: 100%;
   height: 280px;
-  background: linear-gradient(0deg, rgba(59, 130, 246, 0.02), rgba(6, 182, 212, 0.02));
+  background: var(--surface-container-lowest);
   background-image:
-    linear-gradient(rgba(59, 130, 246, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.06) 1px, transparent 1px);
+    linear-gradient(rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 99, 235, 0.06) 1px, transparent 1px);
   background-size: 24px 24px;
   touch-action: none;
   cursor: crosshair;
@@ -749,9 +749,9 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   font-weight: 500;
 }
-.badge-text { background: rgba(59, 130, 246, 0.12); color: var(--color-primary); }
-.badge-voice { background: rgba(6, 182, 212, 0.12); color: #06B6D4; }
-.badge-handwriting { background: rgba(139, 92, 246, 0.12); color: #8B5CF6; }
+.badge-text { background: rgba(37, 99, 235, 0.12); color: var(--color-primary); }
+.badge-voice { background: rgba(6, 182, 212, 0.12); color: #0EA5A5; }
+.badge-handwriting { background: rgba(139, 92, 246, 0.12); color: #7C6CF0; }
 .form-tip { font-size: 12px; color: var(--text-tertiary); margin-top: 6px; }
 .field-label {
   font-size: 14px;
@@ -806,7 +806,7 @@ onBeforeUnmount(() => {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--blue-100, #DBEAFE), var(--cyan-100, #CFFAFE));
+  background: var(--primary-container);
   color: var(--color-primary);
   display: flex;
   align-items: center;
