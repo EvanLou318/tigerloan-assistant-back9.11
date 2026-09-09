@@ -194,7 +194,7 @@ function formatTime(iso) {
 /* ============ 渐变头部 ============ */
 .hero {
   background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
-  padding: calc(env(safe-area-inset-top) + 20px) 16px 0;
+  padding: calc(env(safe-area-inset-top) + 20px) 16px 24px;
   border-radius: 0 0 28px 28px;
 }
 
@@ -244,7 +244,7 @@ function formatTime(iso) {
 }
 .avatar-entry:active { transform: scale(0.92); }
 
-/* 数据概览：半压渐变的白卡 */
+/* 数据概览：半压渐变的白卡（负 margin 上移，不依赖 transform，避免与后续内容重叠） */
 .stats-card {
   display: flex;
   align-items: center;
@@ -252,8 +252,7 @@ function formatTime(iso) {
   border-radius: var(--radius-md);
   padding: 16px 8px;
   box-shadow: 0 4px 16px rgba(26, 34, 51, 0.1);
-  transform: translateY(24px);
-  margin-bottom: -24px;
+  margin-bottom: -48px;
 }
 
 .stat-cell {
