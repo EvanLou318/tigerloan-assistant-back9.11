@@ -4,17 +4,17 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "start": "node --experimental-sqlite server/index.js",
     "dev": "vite --host 0.0.0.0 --port 5173",
-    "server": "node server/index.js",
+    "server": "node --experimental-sqlite server/index.js",
     "dev:all": "concurrently -n web,api -c cyan,green \"npm run dev\" \"npm run server\"",
-    "seed": "node server/seed.js",
+    "seed": "node --experimental-sqlite server/seed.js",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173"
   },
   "dependencies": {
     "axios": "^1.19.0",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^13.0.3",
     "concurrently": "^10.0.5",
     "cors": "^2.8.6",
     "express": "^5.2.1",

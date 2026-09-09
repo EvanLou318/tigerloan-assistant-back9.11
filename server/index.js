@@ -1,5 +1,5 @@
 // ==================== 智贷助手 · 后端服务入口 ====================
-// 技术栈：Node.js + Express + SQLite(better-sqlite3) + JWT
+// 技术栈：Node.js + Express + SQLite(node:sqlite) + JWT
 // 启动：npm run server   （默认端口 3001，前端 vite 已配置代理）
 //
 // AI 能力默认 auto：管理后台「三方服务」按分类切换 mock / 真实供应商；

@@ -1,8 +1,8 @@
 // ==================== SQLite 数据库层 ====================
-// better-sqlite3：同步 API，单文件数据库，零运维
-// 数据文件位于 server/data/loan.db，备份/迁移直接拷贝该文件
+// node:sqlite（Node 22 内置官方 SQLite）：同步 API，零原生编译依赖，
+// 便于一键发布到无编译环境的沙箱。数据文件位于 server/data/loan.db。
 
-import Database from 'better-sqlite3'
+import { DatabaseSync } from 'node:sqlite'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -11,7 +11,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dataDir = path.join(__dirname, 'data')
 fs.mkdirSync(dataDir, { recursive: true })
 
-export const db = new Database(path.join(dataDir, 'loan.db'))
+export const db = new DatabaseSync(path.join(dataDir, 'loan.db'))
+
+// ---------- better-sqlite3 兼容层 ----------
+// 事务：db.transaction(fn) 返回可调用包装函数（BEGIN / COMMIT / ROLLBACK）
+db.transaction = (fn) => (...args) => {
+  db.exec('BEGIN')
+  try {
+    const result = fn(...args)
+    db.exec('COMMIT')
+    return result
+  } catch (err) {
+    db.exec('ROLLBACK')
+    throw err
+  }
+}
+// PRAGMA 设置类调用（本库仅用于 journal_mode / foreign_keys）
+db.pragma = (sql) => {
+  db.exec(`PRAGMA ${sql}`)
+}
+
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 
