@@ -132,7 +132,7 @@
           <div class="section-actions">
             <span
               class="sch-add-btn"
-              @click="$router.push(`/schedules/create?customerId=${customer.id}&customerName=${encodeURIComponent(customer.name)}`)"
+              @click="showScheduleSheet = true"
             >
               <van-icon name="plus" size="12" /> 新建日程
             </span>
@@ -162,7 +162,7 @@
             round
             type="primary"
             plain
-            @click="$router.push(`/schedules/create?customerId=${customer.id}&customerName=${encodeURIComponent(customer.name)}`)"
+            @click="showScheduleSheet = true"
           >
             <van-icon name="plus" /> 为 TA 安排日程
           </van-button>
@@ -457,6 +457,9 @@
         </div>
       </div>
     </van-popup>
+
+    <!-- 新建日程方式选择底弹框 -->
+    <ScheduleMethodSheet v-model:show="showScheduleSheet" :extra-query="scheduleExtraQuery" />
   </div>
 </template>
 
@@ -467,11 +470,14 @@ import { showToast, showSuccessToast, showConfirmDialog } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
 import VoiceMic from '../../components/VoiceMic.vue'
 import { useScheduleStore } from '../../stores/schedule'
+import ScheduleMethodSheet from '../../components/ScheduleMethodSheet.vue'
 
 const route = useRoute()
 const router = useRouter()
 const store = useCustomerStore()
 const scheduleStore = useScheduleStore()
+// 新建日程方式选择底弹框（选文本/语音/手写后携客户信息直达创建页）
+const showScheduleSheet = ref(false)
 
 // 数据加载（覆盖直接刷新详情页的场景）
 onMounted(async () => {
@@ -483,6 +489,10 @@ onMounted(async () => {
 })
 
 const customer = computed(() => store.getCustomerById(route.params.id))
+// 新建日程弹框跳转时携带当前客户，便于创建页自动预填关联客户
+const scheduleExtraQuery = computed(() =>
+  customer.value ? { customerId: customer.value.id, customerName: customer.value.name } : {}
+)
 const simulations = computed(() => store.getSimulationsByCustomerId(route.params.id))
 
 // 该客户的未来未完成日程（按开始时间升序）

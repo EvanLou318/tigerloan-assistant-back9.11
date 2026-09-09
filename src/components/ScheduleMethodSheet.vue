@@ -25,14 +25,17 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
+  // 父组件可附加跳转参数（如从客户详情进入时携带 customerId/customerName）
+  extraQuery: { type: Object, default: null },
 })
 const emit = defineEmits(['update:show'])
 
 const router = useRouter()
+const route = useRoute()
 const visible = ref(false)
 
 watch(
@@ -69,7 +72,10 @@ const methods = [
 
 function onSelect(action) {
   visible.value = false
-  router.push(`/schedules/create?mode=${action.method}`)
+  // 透传当前页携带的查询参数（如客户详情页的 customerId/customerName），仅替换 mode
+  const { mode: _prevMode, ...rest } = route.query
+  const extra = props.extraQuery || {}
+  router.push({ path: '/schedules/create', query: { ...rest, ...extra, mode: action.method } })
 }
 </script>
 

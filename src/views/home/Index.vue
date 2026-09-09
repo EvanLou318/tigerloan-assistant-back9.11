@@ -126,6 +126,7 @@ const scheduleStore = useScheduleStore()
 const productStore = useProductStore()
 const customerStore = useCustomerStore()
 const showMethodSheet = ref(false)
+const showScheduleSheet = ref(false)
 
 // 首页工作台：日程 / 产品 / 客户 数据同时预热（不强制刷新，靠各页面进入时刷新）
 onMounted(() => {
