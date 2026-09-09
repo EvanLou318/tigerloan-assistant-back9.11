@@ -875,27 +875,20 @@ function showSource(field) {
 </script>
 
 <style scoped>
+/* 页面容器：统一 16px 页边距 + 12px 区块间距（与首页/产品详情一致） */
 .detail-page {
-  padding-bottom: 80px;
+  padding: 12px 16px calc(88px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* 客户头部 */
 .customer-header {
-  background: var(--bg-card);
+  background: var(--surface-container);
+  border-radius: var(--radius-md);
   padding: 16px;
-  border-bottom: none;
-  position: relative;
-  overflow: hidden;
-}
-
-.customer-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--gradient-primary);
+  box-shadow: var(--shadow-card);
 }
 
 .header-top {
@@ -1027,8 +1020,8 @@ function showSource(field) {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 16px 16px 0;
-  padding: 14px 16px;
+  margin: 0;
+  padding: 16px;
   background: var(--primary-container);
   border: none;
   border-radius: var(--radius-md);
@@ -1043,7 +1036,7 @@ function showSource(field) {
 .entry-icon {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: rgba(59, 130, 246, 0.12);
   display: flex;
   align-items: center;
@@ -1091,7 +1084,7 @@ function showSource(field) {
 .risk-badge {
   font-size: 11px;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -1159,37 +1152,22 @@ function showSource(field) {
 
 /* Section */
 .section {
-  padding: 0 16px;
-  margin-top: 16px;
+  padding: 0;
+  margin: 0;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-  padding: 0 4px;
+  margin-bottom: 8px;
   cursor: pointer;
 }
 
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
-  position: relative;
-  padding-left: 10px;
-}
-
-.section-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 14px;
-  border-radius: 2px;
-  background: var(--gradient-primary);
+  color: var(--text-secondary);
 }
 
 .section-extra {
@@ -1618,9 +1596,10 @@ function showSource(field) {
 
 /* 信息列表 */
 .info-list {
-  background: var(--bg-card);
+  background: var(--surface-container);
   border: none;
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -1679,10 +1658,11 @@ function showSource(field) {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--bg-card);
+  background: var(--surface-container);
   border: none;
   border-radius: var(--radius-md);
-  padding: 12px;
+  box-shadow: var(--shadow-card);
+  padding: 14px;
   cursor: pointer;
 }
 
@@ -1735,10 +1715,11 @@ function showSource(field) {
 }
 
 .sim-item {
-  background: var(--bg-card);
+  background: var(--surface-container);
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 12px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 14px;
   cursor: pointer;
 }
 
@@ -1788,12 +1769,13 @@ function showSource(field) {
   gap: 12px;
   padding: 12px 16px;
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
-  background: var(--bg-card);
-  border-top: none;
+  background: var(--surface-container-lowest);
+  box-shadow: 0 -1px 8px rgba(26, 34, 51, 0.04);
 }
 
 .action-bar .van-button {
   flex: 1;
+  height: 46px;
 }
 
 /* 溯源弹窗 */

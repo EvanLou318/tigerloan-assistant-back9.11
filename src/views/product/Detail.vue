@@ -15,7 +15,10 @@
             {{ product.status === 'active' ? '启用中' : '已禁用' }}
           </div>
         </div>
-        <div class="product-institution">{{ product.institution }}</div>
+        <div class="product-institution">
+          <van-icon name="shop-o" size="14" class="inst-icon" />
+          <span>{{ product.institution }}</span>
+        </div>
       </div>
 
       <!-- 核心数据 -->
@@ -25,7 +28,6 @@
             <div class="rate-value">{{ product.minRate }}<span class="rate-unit">%</span></div>
             <div class="rate-label">最低年利率</div>
           </div>
-          <div class="rate-divider"></div>
           <div class="rate-item">
             <div class="rate-value">{{ product.maxRate }}<span class="rate-unit">%</span></div>
             <div class="rate-label">最高年利率</div>
@@ -156,33 +158,42 @@ function goMatch() {
 
 <style scoped>
 .detail-page {
-  padding: 0 0 80px;
+  padding: 12px 16px calc(88px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
+/* 头部：与其余区块统一为白卡，同一套圆角与内边距 */
 .product-header {
-  padding: 20px 16px 16px;
-  background: transparent;
-  border-bottom: none;
+  background: var(--surface-container);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
 }
 
 .header-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 4px;
+  gap: 12px;
+  margin-bottom: 6px;
 }
 
 .product-name {
+  flex: 1;
+  min-width: 0;
   font-size: 20px;
   font-weight: 700;
+  line-height: 1.35;
   color: var(--text-primary);
 }
 
 .status-badge {
   font-size: 11px;
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: 8px;
-  font-weight: 500;
+  font-weight: 600;
   flex-shrink: 0;
   border: none;
 }
@@ -193,126 +204,100 @@ function goMatch() {
 }
 
 .status-badge.disabled {
-  background: var(--danger-container);
-  color: var(--on-danger-container);
+  background: var(--surface-container-high);
+  color: var(--text-secondary);
 }
 
 .product-institution {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 14px;
   color: var(--text-secondary);
 }
 
-/* 核心数据 */
-.rate-card {
-  margin: 16px;
-  padding: 20px;
-  background: var(--bg-card);
-  border: none;
-  border-radius: var(--radius-lg);
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
-}
+.inst-icon { color: var(--color-secondary); }
 
-.rate-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--gradient-primary);
+/* 核心数据：白卡 + tonal 色块，不用线条分隔 */
+.rate-card {
+  background: var(--surface-container);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
 }
 
 .rate-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  margin-bottom: 16px;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .rate-item {
+  flex: 1;
   text-align: center;
+  padding: 14px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-container);
 }
 
 .rate-value {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-family: 'DIN', sans-serif;
+  line-height: 1.2;
+  color: var(--on-primary-container);
+  font-family: 'DIN', 'Roboto', sans-serif;
 }
 
 .rate-unit {
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .rate-label {
   font-size: 12px;
-  color: var(--text-tertiary);
-  margin-top: 2px;
-}
-
-.rate-divider {
-  width: 1px;
-  height: 40px;
-  background: var(--surface-container-high);
+  color: var(--on-primary-container);
+  opacity: 0.75;
+  margin-top: 4px;
 }
 
 .amount-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 16px;
-  border-top: none;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--secondary-container);
 }
 
 .amount-label {
-  font-size: 14px;
-  color: var(--text-secondary);
+  font-size: 12px;
+  color: var(--on-secondary-container);
+  opacity: 0.8;
 }
 
 .amount-value {
   font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 700;
+  color: var(--on-secondary-container);
 }
 
 /* 信息区 */
-.info-section {
-  padding: 0 16px;
-  margin-bottom: 16px;
-}
+.info-section { margin: 0; }
 
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 10px;
-  padding-left: 10px;
-  position: relative;
-}
-
-.section-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 14px;
-  border-radius: 2px;
-  background: var(--gradient-primary);
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  padding-left: 2px;
 }
 
 .info-card {
-  background: var(--bg-card);
-  border: none;
+  background: var(--surface-container);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  padding: 4px 16px;
   box-shadow: var(--shadow-card);
 }
 
@@ -320,27 +305,27 @@ function goMatch() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  border-bottom: none;
-}
-
-.info-item:last-child {
-  border-bottom: none;
+  gap: 16px;
+  padding: 13px 0;
 }
 
 .info-label {
   font-size: 14px;
   color: var(--text-tertiary);
+  flex-shrink: 0;
 }
 
 .info-value {
   font-size: 14px;
+  font-weight: 500;
   color: var(--text-primary);
+  text-align: right;
+  min-width: 0;
+  word-break: break-all;
 }
 
 .conditions-card {
-  background: var(--bg-card);
-  border: none;
+  background: var(--surface-container);
   border-radius: var(--radius-md);
   padding: 16px;
   box-shadow: var(--shadow-card);
@@ -349,7 +334,7 @@ function goMatch() {
 .conditions-text {
   font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.8;
+  line-height: 1.7;
 }
 
 /* 操作栏 */
@@ -363,11 +348,11 @@ function goMatch() {
   padding: 12px 16px;
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
   background: var(--surface-container-lowest);
-  border-top: none;
   box-shadow: 0 -1px 8px rgba(26, 34, 51, 0.04);
 }
 
 .action-bar .van-button {
   flex: 1;
+  height: 46px;
 }
 </style>
