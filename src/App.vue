@@ -5,6 +5,8 @@
         <component :is="Component" />
       </transition>
     </router-view>
+    <!-- 全局语音输入面板：任意输入框唤起 ASR -->
+    <VoiceInputSheet />
   </van-config-provider>
 </template>
 
@@ -12,6 +14,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { navDirection } from './router'
+import VoiceInputSheet from './components/VoiceInputSheet.vue'
 
 const route = useRoute()
 

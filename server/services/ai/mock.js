@@ -142,7 +142,8 @@ export async function ocrBusinessLicense() {
 
 // ---------- ASR：语音转文字 ----------
 
-export async function asr(text = null) {
+// ASR：签名对齐路由层 (file, text)——file 为上传音频（mock 不识别，忽略），text 为期望/示例转写文本
+export async function asr(file = null, text = null) {
   await delay(2000)
   const defaultText = '张三，男，32岁，在上海某科技公司做产品经理，月收入一万五，公积金基数3500，名下在浦东有套房值280万没有贷款，还有一辆车值15万，征信良好没有逾期，近三个月查询5次，想贷20万'
   return {

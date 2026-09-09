@@ -297,11 +297,19 @@
           <div class="ep-grid">
             <div class="ep-field span2">
               <span class="ep-label">姓名 <i class="req">*</i></span>
-              <van-field v-model="editForm.name" placeholder="客户姓名" class="ep-input" />
+              <van-field v-model="editForm.name" placeholder="客户姓名" class="ep-input">
+                <template #right-icon>
+                  <VoiceMic label="客户姓名" sample="李建国" @confirm="editForm.name = $event" />
+                </template>
+              </van-field>
             </div>
             <div class="ep-field span2">
               <span class="ep-label">手机号 <i class="req">*</i></span>
-              <van-field v-model="editForm.phone" type="tel" maxlength="11" placeholder="客户手机号" class="ep-input" />
+              <van-field v-model="editForm.phone" type="tel" maxlength="11" placeholder="客户手机号" class="ep-input">
+                <template #right-icon>
+                  <VoiceMic label="手机号" sample="13812345678" @confirm="editForm.phone = $event" />
+                </template>
+              </van-field>
             </div>
             <div class="ep-field">
               <span class="ep-label">性别</span>
@@ -315,7 +323,11 @@
             </div>
             <div class="ep-field span2">
               <span class="ep-label">所在城市</span>
-              <van-field v-model="editForm.city" placeholder="如 上海" class="ep-input" />
+              <van-field v-model="editForm.city" placeholder="如 上海" class="ep-input">
+                <template #right-icon>
+                  <VoiceMic label="所在城市" sample="上海" @confirm="editForm.city = $event" />
+                </template>
+              </van-field>
             </div>
             <div class="ep-field">
               <span class="ep-label">婚姻状况</span>
@@ -344,11 +356,19 @@
             </div>
             <div class="ep-field span2">
               <span class="ep-label">工作单位</span>
-              <van-field v-model="editForm.employer" placeholder="如 上海某科技公司" class="ep-input" />
+              <van-field v-model="editForm.employer" placeholder="如 上海某科技公司" class="ep-input">
+                <template #right-icon>
+                  <VoiceMic label="工作单位" sample="上海沐光科技有限公司" @confirm="editForm.employer = $event" />
+                </template>
+              </van-field>
             </div>
             <div class="ep-field span2">
               <span class="ep-label">职位</span>
-              <van-field v-model="editForm.position" placeholder="如 产品经理" class="ep-input" />
+              <van-field v-model="editForm.position" placeholder="如 产品经理" class="ep-input">
+                <template #right-icon>
+                  <VoiceMic label="职位" sample="高级产品经理" @confirm="editForm.position = $event" />
+                </template>
+              </van-field>
             </div>
           </div>
 
@@ -445,6 +465,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast, showConfirmDialog } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
+import VoiceMic from '../../components/VoiceMic.vue'
 import { useScheduleStore } from '../../stores/schedule'
 
 const route = useRoute()

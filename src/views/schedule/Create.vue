@@ -92,7 +92,11 @@
       </div>
 
       <van-cell-group inset>
-        <van-field v-model="form.title" label="标题" placeholder="如：与张总确认额度" :rules="[{ required: true, message: '请输入标题' }]" />
+        <van-field v-model="form.title" label="标题" placeholder="如：与张总确认额度" :rules="[{ required: true, message: '请输入标题' }]">
+          <template #right-icon>
+            <VoiceMic label="日程标题" sample="下午3点与张总确认贷款方案" @confirm="form.title = $event" />
+          </template>
+        </van-field>
         <van-cell title="开始时间" :value="formatDT(form.startTime)">
           <template #value>
             <input
@@ -115,7 +119,11 @@
         </van-cell>
         <van-cell title="优先级" :value="priorityLabel[form.priority]" is-link @click="openPriorityPicker" />
         <van-cell title="类型" :value="typeLabel[form.type]" is-link @click="openTypePicker" />
-        <van-field v-model="form.location" label="地点" placeholder="如：客户公司 / 咖啡厅" />
+        <van-field v-model="form.location" label="地点" placeholder="如：客户公司 / 咖啡厅">
+          <template #right-icon>
+            <VoiceMic label="地点" sample="陆家嘴金融中心咖啡厅" @confirm="form.location = $event" />
+          </template>
+        </van-field>
         <van-field
           :model-value="form.customerName"
           label="关联客户"
@@ -131,7 +139,11 @@
       <van-popup v-model:show="showCustomerPicker" position="bottom" round style="height: 60%;">
         <div class="cp-header">选择关联客户</div>
         <div class="cp-search">
-          <van-search v-model="customerKeyword" placeholder="搜索姓名或手机号" shape="round" />
+          <van-search v-model="customerKeyword" placeholder="搜索姓名或手机号" shape="round">
+            <template #right-icon>
+              <VoiceMic label="搜索关联客户" sample="13800138000" @confirm="customerKeyword = $event" />
+            </template>
+          </van-search>
         </div>
         <div class="cp-list">
           <div
@@ -163,7 +175,11 @@
           placeholder="可补充议程、需准备的材料等"
           rows="3"
           autosize
-        />
+        >
+          <template #right-icon>
+            <VoiceMic label="日程备注" sample="带上身份证和近半年银行流水，确认利率与放款时效" @confirm="form.remark = $event" />
+          </template>
+        </van-field>
       </div>
 
       <div style="margin: 24px 16px;">
@@ -206,6 +222,7 @@ import { showToast, showSuccessToast } from 'vant'
 import { useScheduleStore } from '../../stores/schedule'
 import { useCustomerStore } from '../../stores/customer'
 import { asr as asrApi, extractSchedule as extractScheduleApi } from '../../api/ai'
+import VoiceMic from '../../components/VoiceMic.vue'
 
 const router = useRouter()
 const route = useRoute()

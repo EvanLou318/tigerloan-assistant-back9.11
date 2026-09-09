@@ -225,7 +225,11 @@
           v-model="saveName"
           label="推演名称"
           placeholder="如：调高收入+降低负债方案"
-        />
+        >
+          <template #right-icon>
+            <VoiceMic label="推演名称" sample="调高月收入并降低负债的组合方案" @confirm="saveName = $event" />
+          </template>
+        </van-field>
       </div>
     </van-dialog>
   </div>
@@ -237,6 +241,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
 import { useProductStore } from '../../stores/product'
+import VoiceMic from '../../components/VoiceMic.vue'
 import { matchProducts } from '../../api/ai'
 
 const route = useRoute()

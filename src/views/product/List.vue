@@ -10,7 +10,11 @@
           placeholder="搜索产品名称或机构"
           shape="round"
           :clearable="true"
-        />
+        >
+          <template #right-icon>
+            <VoiceMic label="搜索产品" sample="公积金贷" @confirm="store.searchKeyword = $event" />
+          </template>
+        </van-search>
       </div>
 
       <!-- 筛选标签 -->
@@ -102,6 +106,7 @@ import { ref, onMounted } from 'vue'
 import MainLayout from '../../layouts/MainLayout.vue'
 import ProductMethodSheet from '../../components/ProductMethodSheet.vue'
 import SkeletonList from '../../components/SkeletonList.vue'
+import VoiceMic from '../../components/VoiceMic.vue'
 import { useProductStore } from '../../stores/product'
 
 const store = useProductStore()

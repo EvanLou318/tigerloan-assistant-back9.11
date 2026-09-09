@@ -129,7 +129,13 @@
         class="input-field"
         :border="false"
         @keyup.enter="send()"
-      />
+      >
+        <template #right-icon>
+          <span style="display: inline-flex; align-items: center;">
+            <VoiceMic label="指令内容" sample="帮我筛选适合公积金信用贷的客户" @confirm="inputText = $event" />
+          </span>
+        </template>
+      </van-field>
       <div class="send-btn" :class="{ active: inputText.trim() }" @click="send()">
         <van-icon name="arrow-up" size="18" color="#FFFFFF" />
       </div>
@@ -141,6 +147,7 @@
 import { ref, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { assistantReply } from '../../api/ai'
+import VoiceMic from '../../components/VoiceMic.vue'
 import { useCustomerStore } from '../../stores/customer'
 import { useProductStore } from '../../stores/product'
 import { useScheduleStore } from '../../stores/schedule'

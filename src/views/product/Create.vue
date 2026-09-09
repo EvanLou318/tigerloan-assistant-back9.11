@@ -165,8 +165,16 @@
 
       <van-form @submit="onSave">
         <van-cell-group inset>
-          <van-field v-model="formData.productName" label="产品名称" placeholder="请输入" :rules="[{ required: true, message: '请输入产品名称' }]" />
-          <van-field v-model="formData.institution" label="所属机构" placeholder="请输入" :rules="[{ required: true, message: '请输入所属机构' }]" />
+          <van-field v-model="formData.productName" label="产品名称" placeholder="请输入" :rules="[{ required: true, message: '请输入产品名称' }]">
+            <template #right-icon>
+              <VoiceMic label="产品名称" sample="公积金信用贷" @confirm="formData.productName = $event" />
+            </template>
+          </van-field>
+          <van-field v-model="formData.institution" label="所属机构" placeholder="请输入" :rules="[{ required: true, message: '请输入所属机构' }]">
+            <template #right-icon>
+              <VoiceMic label="所属机构" sample="招商银行" @confirm="formData.institution = $event" />
+            </template>
+          </van-field>
           <van-field v-model="formData.minRate" label="最低年利率" type="number" placeholder="如 3.45" :rules="[{ required: true, message: '请输入最低年利率' }]">
             <template #button><span style="color: var(--text-tertiary);">%</span></template>
           </van-field>
@@ -179,8 +187,16 @@
           <van-field v-model="formData.maxAmount" label="最高额度" type="digit" placeholder="如 30" :rules="[{ required: true, message: '请输入最高额度' }]">
             <template #button><span style="color: var(--text-tertiary);">万</span></template>
           </van-field>
-          <van-field v-model="formData.loanTerm" label="贷款期限" placeholder="如 12-36个月" :rules="[{ required: true, message: '请输入贷款期限' }]" />
-          <van-field v-model="formData.repaymentMethod" label="还款方式" placeholder="如 等额本息" :rules="[{ required: true, message: '请输入还款方式' }]" />
+          <van-field v-model="formData.loanTerm" label="贷款期限" placeholder="如 12-36个月" :rules="[{ required: true, message: '请输入贷款期限' }]">
+            <template #right-icon>
+              <VoiceMic label="贷款期限" sample="12到36个月" @confirm="formData.loanTerm = $event" />
+            </template>
+          </van-field>
+          <van-field v-model="formData.repaymentMethod" label="还款方式" placeholder="如 等额本息" :rules="[{ required: true, message: '请输入还款方式' }]">
+            <template #right-icon>
+              <VoiceMic label="还款方式" sample="等额本息" @confirm="formData.repaymentMethod = $event" />
+            </template>
+          </van-field>
         </van-cell-group>
 
         <div style="margin: 16px;">
@@ -192,7 +208,11 @@
             rows="3"
             autosize
             :rules="[{ required: true, message: '请输入准入条件' }]"
-          />
+          >
+            <template #right-icon>
+              <VoiceMic label="准入条件" sample="年龄22到55周岁，本单位连续工作满6个月，月收入不低于5000元，征信无当前逾期" @confirm="formData.conditions = $event" />
+            </template>
+          </van-field>
         </div>
 
         <div style="margin: 24px 16px;">
@@ -210,6 +230,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useProductStore } from '../../stores/product'
+import VoiceMic from '../../components/VoiceMic.vue'
 import { asr, extractProduct } from '../../api/ai'
 
 const route = useRoute()

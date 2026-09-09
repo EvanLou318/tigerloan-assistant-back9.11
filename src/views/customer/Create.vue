@@ -40,7 +40,11 @@
                 label="姓名"
                 placeholder="客户真实姓名"
                 :rules="[{ required: true, message: '请输入客户姓名' }]"
-              />
+              >
+                <template #right-icon>
+                  <VoiceMic label="客户姓名" sample="李建国" @confirm="form.name = $event" />
+                </template>
+              </van-field>
               <van-field
                 v-model="form.phone"
                 label="手机号"
@@ -51,15 +55,27 @@
                   { required: true, message: '请输入手机号' },
                   { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
                 ]"
-              />
+              >
+                <template #right-icon>
+                  <VoiceMic label="手机号" sample="13812345678" @confirm="form.phone = $event" />
+                </template>
+              </van-field>
             </van-cell-group>
 
             <div class="card-label" style="margin-top: 20px;">选填信息</div>
             <van-cell-group inset>
               <van-field v-model="form.gender" label="性别" placeholder="请选择" is-link readonly @click="showGender = true" />
               <van-field v-model="form.age" label="年龄" type="digit" placeholder="如 32" />
-              <van-field v-model="form.city" label="所在城市" placeholder="如 上海" />
-              <van-field v-model="form.occupation" label="职业" placeholder="如 互联网产品经理" />
+              <van-field v-model="form.city" label="所在城市" placeholder="如 上海">
+                <template #right-icon>
+                  <VoiceMic label="所在城市" sample="上海" @confirm="form.city = $event" />
+                </template>
+              </van-field>
+              <van-field v-model="form.occupation" label="职业" placeholder="如 互联网产品经理">
+                <template #right-icon>
+                  <VoiceMic label="职业" sample="互联网产品经理" @confirm="form.occupation = $event" />
+                </template>
+              </van-field>
             </van-cell-group>
 
             <!-- 客户来源 -->
@@ -88,7 +104,11 @@
                 maxlength="100"
                 show-word-limit
                 placeholder="如：朋友介绍，意向信用贷 20 万，重点关注利率和放款速度"
-              />
+              >
+                <template #right-icon>
+                  <VoiceMic label="意向备注" sample="朋友介绍，意向信用贷20万，重点关注利率和放款速度" @confirm="form.remark = $event" />
+                </template>
+              </van-field>
             </van-cell-group>
 
             <div style="margin: 24px 16px 8px;">
@@ -211,7 +231,11 @@
                     :type="f.inputType || 'text'"
                     :placeholder="f.placeholder"
                     class="ai-field"
-                  />
+                  >
+                    <template v-if="isVoiceable(f)" #right-icon>
+                      <VoiceMic :label="f.label || '字段'" :sample="f.sample || ''" @confirm="aiForm[f.key] = $event" />
+                    </template>
+                  </van-field>
                 </div>
               </div>
 
@@ -247,6 +271,7 @@ import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showSuccessToast, showToast } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
+import VoiceMic from '../../components/VoiceMic.vue'
 import { asr as asrApi, extractCustomerFromVoice } from '../../api/ai'
 
 const router = useRouter()
@@ -361,29 +386,32 @@ function resetVoice() {
 
 const confOf = (key) => aiConfidence.value[key] ?? 0.9
 
+// 仅文本类字段（非数字/选择器）支持语音回填
+const isVoiceable = (f) => f.type !== 'source' && !['number', 'digit'].includes(f.inputType || '')
+
 const reviewGroups = computed(() => [
   {
     title: '客户基本信息',
     fields: [
-      { key: 'name', label: '姓名', confidence: confOf('name'), placeholder: '客户真实姓名' },
-      { key: 'phone', label: '手机号', confidence: confOf('phone'), inputType: 'tel', placeholder: '客户联系电话' },
-      { key: 'gender', label: '性别', confidence: confOf('gender'), placeholder: '如 男 / 女' },
+      { key: 'name', label: '姓名', confidence: confOf('name'), placeholder: '客户真实姓名', sample: '李建国' },
+      { key: 'phone', label: '手机号', confidence: confOf('phone'), inputType: 'tel', placeholder: '客户联系电话', sample: '13812345678' },
+      { key: 'gender', label: '性别', confidence: confOf('gender'), placeholder: '如 男 / 女', sample: '男' },
       { key: 'age', label: '年龄', confidence: confOf('age'), inputType: 'digit', placeholder: '如 32' },
-      { key: 'city', label: '所在城市', confidence: confOf('city'), placeholder: '如 上海' },
-      { key: 'occupation', label: '职业', confidence: confOf('occupation'), placeholder: '如 产品经理' },
+      { key: 'city', label: '所在城市', confidence: confOf('city'), placeholder: '如 上海', sample: '上海' },
+      { key: 'occupation', label: '职业', confidence: confOf('occupation'), placeholder: '如 产品经理', sample: '产品经理' },
     ],
   },
   {
     title: '客户来源与意向',
     fields: [
       { key: 'source', label: '客户来源', confidence: confOf('source'), type: 'source' },
-      { key: 'remark', label: '意向备注', confidence: confOf('remark'), placeholder: '意向产品、额度、关注点等' },
+      { key: 'remark', label: '意向备注', confidence: confOf('remark'), placeholder: '意向产品、额度、关注点等', sample: '意向信用贷20万，重点关注放款速度' },
     ],
   },
   {
     title: '收入信息',
     fields: [
-      { key: 'employer', label: '工作单位', confidence: confOf('employer'), placeholder: '如 某科技公司' },
+      { key: 'employer', label: '工作单位', confidence: confOf('employer'), placeholder: '如 某科技公司', sample: '上海沐光科技有限公司' },
       { key: 'monthlyIncome', label: '月均收入（元）', confidence: confOf('monthlyIncome'), inputType: 'digit', placeholder: '如 15000' },
     ],
   },

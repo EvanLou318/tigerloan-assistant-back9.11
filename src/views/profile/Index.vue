@@ -96,7 +96,11 @@
       <!-- 反馈弹窗 -->
       <van-dialog v-model:show="showFeedback" title="意见反馈" confirm-button-text="提交" @confirm="submitFeedback">
         <div style="padding: 16px;">
-          <van-field v-model="feedbackText" type="textarea" placeholder="请输入您的意见或建议" rows="4" autosize />
+          <van-field v-model="feedbackText" type="textarea" placeholder="请输入您的意见或建议" rows="4" autosize>
+            <template #right-icon>
+              <VoiceMic label="意见反馈" sample="希望增加批量导入客户和导出报表的功能" @confirm="feedbackText = $event" />
+            </template>
+          </van-field>
         </div>
       </van-dialog>
 
@@ -122,6 +126,7 @@ import { useProductStore } from '../../stores/product'
 import { useCustomerStore } from '../../stores/customer'
 import { useScheduleStore } from '../../stores/schedule'
 import MainLayout from '../../layouts/MainLayout.vue'
+import VoiceMic from '../../components/VoiceMic.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

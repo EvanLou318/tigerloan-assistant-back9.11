@@ -9,7 +9,11 @@
           placeholder="搜索客户姓名或手机号"
           shape="round"
           clearable
-        />
+        >
+          <template #right-icon>
+            <VoiceMic label="搜索客户" sample="王建国" @confirm="store.searchKeyword = $event" />
+          </template>
+        </van-search>
       </div>
 
       <!-- 客户列表 -->
@@ -95,6 +99,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import MainLayout from '../../layouts/MainLayout.vue'
 import SkeletonList from '../../components/SkeletonList.vue'
+import VoiceMic from '../../components/VoiceMic.vue'
 import { useCustomerStore } from '../../stores/customer'
 import { useScheduleStore } from '../../stores/schedule'
 
