@@ -103,7 +103,7 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: () => import('../views/profile/Index.vue'),
-    meta: { title: '我的', requiresAuth: true, tabbar: true },
+    meta: { title: '我的', requiresAuth: true },
   },
   // ---------- 管理后台（桌面端） ----------
   {

@@ -5,7 +5,10 @@
     @click.stop.prevent="open"
     @mousedown.stop.prevent
   >
-    <van-icon name="mic" :size="size" color="#2E6BFF" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <path d="M12 14C13.1 14 14 13.1 14 12V6C14 4.9 13.1 4 12 4C10.9 4 10 4.9 10 6V12C10 13.1 10.9 14 12 14Z" fill="#2E6BFF" />
+      <path d="M17 12C17 14.8 14.8 17 12 17C9.2 17 7 14.8 7 12H5C5 15.3 7.4 18.1 10.5 18.8V22H13.5V18.8C16.6 18.1 19 15.3 19 12H17Z" fill="#2E6BFF" />
+    </svg>
     <span class="vm-ring"></span>
   </span>
 </template>

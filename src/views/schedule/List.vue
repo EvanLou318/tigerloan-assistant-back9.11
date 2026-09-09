@@ -12,14 +12,14 @@
           </div>
         </div>
         <div class="hero-illu">
-        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-          <circle cx="40" cy="40" r="36" fill="rgba(59,130,246,0.08)" />
-          <rect x="20" y="22" width="40" height="38" rx="6" fill="rgba(59,130,246,0.18)" />
-          <rect x="24" y="30" width="32" height="4" rx="2" fill="#3B82F6" />
-          <rect x="24" y="38" width="22" height="4" rx="2" fill="rgba(59,130,246,0.5)" />
-          <rect x="24" y="46" width="28" height="4" rx="2" fill="rgba(59,130,246,0.5)" />
-          <circle cx="58" cy="22" r="8" fill="#06B6D4" />
-          <path d="M55 22 L57 24 L61 20" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        <svg width="64" height="64" viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="40" r="36" fill="rgba(255,255,255,0.12)" />
+          <rect x="20" y="22" width="40" height="38" rx="6" fill="rgba(255,255,255,0.28)" />
+          <rect x="24" y="30" width="32" height="4" rx="2" fill="#FFFFFF" />
+          <rect x="24" y="38" width="22" height="4" rx="2" fill="rgba(255,255,255,0.72)" />
+          <rect x="24" y="46" width="28" height="4" rx="2" fill="rgba(255,255,255,0.72)" />
+          <circle cx="58" cy="22" r="8" fill="#FFFFFF" />
+          <path d="M55 22 L57 24 L61 20" stroke="#06B6D4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
         </svg>
       </div>
     </div>
@@ -46,7 +46,7 @@
         :key="item.id"
         class="schedule-card"
         :class="{ done: item.done }"
-        @click="onItemClick(item)"
+        @click="openDetail(item)"
       >
         <div class="time-block" :class="`prio-${item.priority}`">
           <div class="time-range">{{ formatTime(item.startTime) }}-{{ formatTime(item.endTime) }}</div>
@@ -67,6 +67,7 @@
             <span v-if="item.reminderTime" class="meta-item">
               <van-icon name="bell" size="12" /> 提前 {{ getReminderOffset(item.reminderTime, item.startTime) }}
             </span>
+            <span v-if="isOverdue(item)" class="meta-item overdue-tag">已逾期</span>
           </div>
         </div>
         <div class="check-box" @click.stop="onToggleDone(item)">
@@ -88,15 +89,92 @@
           <rect x="38" y="74" width="36" height="3" rx="1.5" fill="rgba(59,130,246,0.3)" />
         </svg>
         <p class="empty-text">{{ emptyText }}</p>
-        <van-button round type="primary" size="small" @click="$router.push('/schedules/create')">+ 新建日程</van-button>
+        <van-button round type="primary" size="small" @click="showMethodSheet = true">+ 新建日程</van-button>
       </div>
     </div>
     </van-pull-refresh>
 
-    <!-- 新建 FAB -->
-    <div class="fab" @click="$router.push('/schedules/create')">
+    <!-- 新建日程：直接弹层选择录入方式 -->
+    <div class="fab" @click="showMethodSheet = true">
       <van-icon name="plus" size="22" color="#FFFFFF" />
     </div>
+
+    <!-- 日程详情底部面板 -->
+    <van-popup v-model:show="showDetail" position="bottom" round class="detail-popup" :style="{ paddingBottom: 'env(safe-area-inset-bottom)' }">
+      <template v-if="detailItem">
+        <div class="dp-handle"></div>
+        <div class="dp-head">
+          <div class="dp-title">
+            <span class="dp-type" v-html="typeIcon(detailItem.type)"></span>
+            <span class="dp-title-text">{{ detailItem.title }}</span>
+          </div>
+          <van-icon name="cross" class="dp-close" @click="showDetail = false" />
+        </div>
+
+        <div class="dp-tags">
+          <span class="dp-tag" :class="`dp-tag-${detailItem.priority}`">{{ detailItem.priority === 'P0' ? '紧急 P0' : detailItem.priority === 'P1' ? '普通 P1' : '低优 P2' }}</span>
+          <span class="dp-tag dp-tag-type">{{ typeLabel[detailItem.type] || '待办' }}</span>
+          <span class="dp-tag" :class="detailItem.done ? 'dp-tag-done' : 'dp-tag-open'">
+            <van-icon :name="detailItem.done ? 'success' : 'clock-o'" size="12" />
+            {{ detailItem.done ? '已完成' : '未完成' }}
+          </span>
+        </div>
+
+        <div class="dp-info">
+          <div class="dp-row">
+            <van-icon name="clock-o" class="dp-ic" />
+            <span class="dp-lbl">时间</span>
+            <span class="dp-val">{{ formatFullDate(detailItem.startTime) }} - {{ formatTime(detailItem.endTime) }}</span>
+          </div>
+          <div class="dp-row" v-if="detailItem.location">
+            <van-icon name="location-o" class="dp-ic" />
+            <span class="dp-lbl">地点</span>
+            <span class="dp-val">{{ detailItem.location }}</span>
+          </div>
+          <div class="dp-row" v-if="detailItem.customerName">
+            <van-icon name="contact" class="dp-ic" />
+            <span class="dp-lbl">客户</span>
+            <span class="dp-val">{{ detailItem.customerName }}</span>
+          </div>
+          <div class="dp-row" v-if="detailItem.reminderTime">
+            <van-icon name="bell" class="dp-ic" />
+            <span class="dp-lbl">提醒</span>
+            <span class="dp-val">提前 {{ getReminderOffset(detailItem.reminderTime, detailItem.startTime) }}</span>
+          </div>
+          <div class="dp-row dp-row-note" v-if="detailItem.remark">
+            <van-icon name="notes-o" class="dp-ic" />
+            <span class="dp-lbl">备注</span>
+            <span class="dp-val">{{ detailItem.remark }}</span>
+          </div>
+        </div>
+
+        <div class="dp-actions">
+          <van-button
+            v-if="!detailItem.done"
+            round block type="primary"
+            :loading="acting"
+            loading-text="处理中..."
+            @click="markDone(detailItem)"
+          >
+            <van-icon name="success" /> 标记完成
+          </van-button>
+          <van-button
+            v-else
+            round block
+            class="dp-restore"
+            :loading="acting"
+            loading-text="处理中..."
+            @click="markDone(detailItem)"
+          >
+            <van-icon name="replay" /> 恢复未完成
+          </van-button>
+          <van-button plain round block class="dp-delete" @click="confirmDelete(detailItem)">删除日程</van-button>
+        </div>
+      </template>
+    </van-popup>
+
+    <!-- 新建日程方式选择 -->
+    <ScheduleMethodSheet v-model:show="showMethodSheet" />
     </div>
   </MainLayout>
 </template>
@@ -104,16 +182,68 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showSuccessToast, showConfirmDialog } from 'vant'
+import { showSuccessToast, showToast, showConfirmDialog } from 'vant'
 import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
 import MainLayout from '../../layouts/MainLayout.vue'
 import SkeletonList from '../../components/SkeletonList.vue'
+import ScheduleMethodSheet from '../../components/ScheduleMethodSheet.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const scheduleStore = useScheduleStore()
 const refreshing = ref(false)
+
+// 新建日程方式选择弹层
+const showMethodSheet = ref(false)
+
+// 详情底部面板
+const showDetail = ref(false)
+const acting = ref(false)
+const detailId = ref(null)
+const detailItem = computed(() => scheduleStore.schedules.find((s) => s.id === detailId.value) || null)
+
+function openDetail(item) {
+  detailId.value = item.id
+  showDetail.value = true
+}
+
+function closeDetail() {
+  showDetail.value = false
+  detailId.value = null
+}
+
+async function markDone(item) {
+  acting.value = true
+  try {
+    await scheduleStore.toggleDone(item.id)
+    showSuccessToast(item.done ? '已恢复为未完成' : '已标记完成')
+    closeDetail()
+  } catch (e) {
+    showToast('操作失败，请重试')
+  } finally {
+    acting.value = false
+  }
+}
+
+function confirmDelete(item) {
+  showConfirmDialog({
+    title: '删除日程',
+    message: `确定删除「${item.title}」吗？删除后不可恢复。`,
+    confirmButtonText: '删除',
+    confirmButtonColor: '#EF4444',
+  })
+    .then(async () => {
+      try {
+        await scheduleStore.deleteSchedule(item.id)
+        showSuccessToast('已删除')
+        closeDetail()
+      } catch (e) {
+        showToast('删除失败，请重试')
+      }
+    })
+    .catch(() => {})
+}
 
 onMounted(() => {
   scheduleStore.loadSchedules(true)
@@ -151,8 +281,23 @@ const emptyText = computed(() => {
 })
 
 function formatTime(iso) {
+  if (!iso) return ''
   const d = new Date(iso)
   return d.toTimeString().slice(0, 5)
+}
+
+function formatFullDate(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()]
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${week} ${d.toTimeString().slice(0, 5)}`
+}
+
+const typeLabel = { task: '待办', call: '通话', meeting: '面谈' }
+
+const now = Date.now()
+function isOverdue(item) {
+  return !item.done && item.endTime && new Date(item.endTime).getTime() < now
 }
 
 function getReminderOffset(reminderIso, startIso) {
@@ -168,37 +313,13 @@ function typeIcon(type) {
   return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 16.2L4.8 12L3.4 13.4L9 19L21 7L19.6 5.6L9 16.2Z" fill="#3B82F6"/></svg>'
 }
 
-function onItemClick(item) {
-  if (item.done) {
-    showConfirmDialog({
-      title: '日程详情',
-      message: `${item.title}\n时间：${new Date(item.startTime).toLocaleString('zh-CN')}\n${item.location ? '地点：' + item.location + '\n' : ''}${item.remark || ''}`,
-      confirmButtonText: '标记未完成',
-      cancelButtonText: '关闭',
-    })
-      .then(() => {
-        scheduleStore.toggleDone(item.id)
-        showSuccessToast('已重置为未完成')
-      })
-      .catch(() => {})
-    return
+async function onToggleDone(item) {
+  try {
+    await scheduleStore.toggleDone(item.id)
+    showSuccessToast(item.done ? '已恢复为未完成' : '已标记完成')
+  } catch (e) {
+    showToast('操作失败，请重试')
   }
-  showConfirmDialog({
-    title: '日程详情',
-    message: `${item.title}\n时间：${new Date(item.startTime).toLocaleString('zh-CN')}\n${item.location ? '地点：' + item.location + '\n' : ''}${item.remark || ''}`,
-    confirmButtonText: '标记完成',
-    cancelButtonText: '关闭',
-  })
-    .then(() => {
-      scheduleStore.toggleDone(item.id)
-      showSuccessToast('已完成')
-    })
-    .catch(() => {})
-}
-
-function onToggleDone(item) {
-  scheduleStore.toggleDone(item.id)
-  showSuccessToast(item.done ? '已标记为未完成' : '已完成')
 }
 </script>
 
@@ -214,7 +335,7 @@ function onToggleDone(item) {
 /* 顶部渐变条 */
 .hero-bar {
   margin: 16px 16px 16px;
-  padding: 16px 20px;
+  padding: 14px 18px;
   background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
   border-radius: var(--radius-lg);
   display: flex;
@@ -223,8 +344,9 @@ function onToggleDone(item) {
   color: #FFFFFF;
   box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
 }
+.hero-text { flex: 1; min-width: 0; }
 .hero-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.hero-sub { font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 6px; }
+.hero-sub { font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .hero-sub .dot { opacity: 0.6; }
 .hero-sub .overdue { background: rgba(255,255,255,0.22); padding: 1px 8px; border-radius: 4px; }
 .hero-illu { flex-shrink: 0; }
@@ -347,6 +469,13 @@ function onToggleDone(item) {
   color: var(--text-tertiary);
 }
 .meta-item { display: inline-flex; align-items: center; gap: 2px; }
+.overdue-tag {
+  color: var(--color-danger);
+  background: var(--danger-container);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
 
 .check-box {
   display: flex;
@@ -382,4 +511,105 @@ function onToggleDone(item) {
   z-index: 10;
 }
 .fab:active { transform: scale(0.95); }
+
+/* ============ 日程详情底部面板 ============ */
+.detail-popup {
+  background: var(--surface-container-lowest);
+  border-radius: 20px 20px 0 0;
+  padding: 10px 20px 20px;
+  max-height: 82vh;
+  overflow-y: auto;
+}
+.dp-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-container-high);
+  margin: 0 auto 12px;
+}
+.dp-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.dp-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+.dp-title-text { word-break: break-all; }
+.dp-type { display: inline-flex; flex-shrink: 0; transform: scale(1.3); transform-origin: center; }
+.dp-close {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  padding: 4px;
+  margin: -4px;
+  cursor: pointer;
+}
+.dp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.dp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: var(--surface-container-high);
+}
+.dp-tag-P0 { background: var(--danger-container); color: var(--on-danger-container); }
+.dp-tag-P1 { background: var(--primary-container); color: var(--on-primary-container); }
+.dp-tag-P2 { background: var(--surface-container-high); color: var(--text-secondary); }
+.dp-tag-type { background: var(--surface-container-high); color: var(--text-secondary); }
+.dp-tag-done { background: rgba(16, 185, 129, 0.14); color: #059669; }
+.dp-tag-open { background: rgba(59, 130, 246, 0.12); color: var(--color-primary); }
+
+.dp-info {
+  background: var(--surface-container);
+  border-radius: 14px;
+  padding: 4px 14px;
+  margin-bottom: 16px;
+}
+.dp-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 0;
+  font-size: 13px;
+}
+.dp-row + .dp-row { border-top: 1px solid var(--surface-container-high); }
+.dp-ic { color: var(--color-primary); margin-top: 2px; flex-shrink: 0; }
+.dp-lbl {
+  width: 32px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  line-height: 1.6;
+}
+.dp-val {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  line-height: 1.6;
+  word-break: break-all;
+}
+.dp-row-note .dp-val { white-space: pre-wrap; }
+
+.dp-actions { display: flex; flex-direction: column; gap: 10px; }
+.dp-restore {
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #059669;
+  background: #fff;
+}
+.dp-delete {
+  color: var(--color-danger);
+  border-color: rgba(239, 68, 68, 0.35);
+}
 </style>

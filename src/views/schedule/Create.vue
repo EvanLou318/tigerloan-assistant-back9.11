@@ -2,55 +2,8 @@
   <div class="page-container create-page">
     <van-nav-bar :title="pageTitle" left-arrow @click-left="onBack" />
 
-    <!-- 1. 选择录入方式 -->
-    <div v-if="step === 'select'" class="select-step">
-      <div class="hero">
-        <svg width="56" height="56" viewBox="0 0 64 64" fill="none">
-          <circle cx="32" cy="32" r="28" fill="rgba(59,130,246,0.1)" />
-          <rect x="20" y="20" width="24" height="26" rx="3" fill="rgba(59,130,246,0.2)" />
-          <rect x="20" y="20" width="24" height="6" rx="3" fill="#3B82F6" />
-          <circle cx="26" cy="23" r="1.5" fill="#FFFFFF" />
-          <circle cx="30" cy="23" r="1.5" fill="#FFFFFF" />
-          <rect x="24" y="32" width="16" height="2.5" rx="1" fill="rgba(59,130,246,0.5)" />
-          <rect x="24" y="37" width="12" height="2.5" rx="1" fill="rgba(59,130,246,0.5)" />
-          <circle cx="44" cy="42" r="6" fill="#06B6D4" />
-          <path d="M41 42 L43 44 L47 40" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-        </svg>
-        <h3>新建日程</h3>
-        <p>选择录入方式，AI 自动识别内容</p>
-      </div>
-
-      <div class="methods">
-        <div class="method" @click="selectMode('text')">
-          <div class="m-icon" style="background: rgba(59, 130, 246, 0.12);">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#3B82F6" />
-            </svg>
-          </div>
-          <div class="m-text">
-            <div class="m-title">文本录入</div>
-            <div class="m-desc">手动填写标题、时间、备注等</div>
-          </div>
-          <van-icon name="arrow" color="#94A3B8" />
-        </div>
-
-        <div class="method" @click="selectMode('voice')">
-          <div class="m-icon" style="background: rgba(6, 182, 212, 0.12);">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M12 14C13.1 14 14 13.1 14 12V6C14 4.9 13.1 4 12 4C10.9 4 10 4.9 10 6V12C10 13.1 10.9 14 12 14ZM17 12C17 14.8 14.8 17 12 17C9.2 17 7 14.8 7 12H5C5 15.3 7.4 18.1 10.5 18.8V22H13.5V18.8C16.6 18.1 19 15.3 19 12H17Z" fill="#06B6D4" />
-            </svg>
-          </div>
-          <div class="m-text">
-            <div class="m-title">语音录入</div>
-            <div class="m-desc">口述日程，AI 自动识别标题/时间/优先级</div>
-          </div>
-          <van-icon name="arrow" color="#94A3B8" />
-        </div>
-      </div>
-    </div>
-
-    <!-- 2. 语音录入 -->
-    <div v-else-if="step === 'voice'" class="voice-step">
+    <!-- 语音录入（方式在入口弹层中选择，?mode=voice 直达） -->
+    <div v-if="step === 'voice'" class="voice-step">
       <div class="voice-hero">
         <div class="voice-visualizer" :class="{ recording: isRecording }">
           <div class="wave-bar" v-for="i in 18" :key="i" :style="{ animationDelay: i * 0.06 + 's' }"></div>
@@ -80,7 +33,43 @@
         <van-button v-if="asrResult" round block type="primary" :loading="aiProcessing" loading-text="AI 提取中..." @click="processVoice">
           AI 提取日程
         </van-button>
-        <van-button plain round block @click="resetToSelect" style="margin-top: 8px;">重新选择方式</van-button>
+        <div class="voice-extra" v-if="asrResult">
+          <span @click="resetRecording">觉得不对？重新录音</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 手写录入（?mode=handwriting 直达） -->
+    <div v-else-if="step === 'handwriting'" class="handwriting-step">
+      <div class="hw-card">
+        <div class="hw-header">
+          <span class="hw-title">手写便签</span>
+          <button class="tool-btn" @click="clearCanvas">
+            <van-icon name="delete-o" size="14" /> 清空
+          </button>
+        </div>
+        <canvas
+          ref="canvasRef"
+          class="hw-canvas"
+          @pointerdown.prevent="onPenDown"
+          @pointermove.prevent="onPenMove"
+          @pointerup="onPenUp"
+          @pointercancel="onPenUp"
+          @pointerleave="onPenUp"
+        ></canvas>
+        <div class="hw-tip" :class="{ done: hasInk }">{{ hasInk ? '已书写，可点击下方识别' : '在格内写下日程内容，如：明天下午3点与张总面谈' }}</div>
+      </div>
+      <div class="bottom-actions">
+        <van-button
+          round block
+          type="primary"
+          :disabled="!hasInk"
+          :loading="aiProcessing"
+          loading-text="AI 识别中..."
+          @click="processHandwriting"
+        >
+          <van-icon name="scan" /> AI 识别并生成日程
+        </van-button>
       </div>
     </div>
 
@@ -229,8 +218,10 @@ const route = useRoute()
 const scheduleStore = useScheduleStore()
 const customerStore = useCustomerStore()
 
-const step = ref('select') // select | voice | handwriting | form
-const source = ref('text') // text | voice | handwriting
+// 录入方式已在入口弹层选择：?mode=text|voice|handwriting，缺省（如客户详情跳转）直达文本表单
+const enteredMode = route.query.mode === 'voice' || route.query.mode === 'handwriting' ? route.query.mode : 'text'
+const step = ref(enteredMode === 'text' ? 'form' : enteredMode) // form | voice | handwriting
+const source = ref(enteredMode) // text | voice | handwriting
 
 // 语音
 const isRecording = ref(false)
@@ -267,6 +258,9 @@ const showPriorityPicker = ref(false)
 const showTypePicker = ref(false)
 const showReminderPicker = ref(false)
 
+// 文本表单默认时间（setup 即预填，避免表单短暂空值）
+ensureDefaults()
+
 /* 关联客户选择 */
 const showCustomerPicker = ref(false)
 const customerKeyword = ref('')
@@ -292,9 +286,8 @@ function clearCustomer() {
 }
 
 const pageTitle = computed(() => {
-  if (step.value === 'voice') return '语音录入'
-  if (step.value === 'handwriting') return '手写录入'
-  if (step.value === 'form') return '确认日程'
+  if (step.value === 'voice') return '语音录入日程'
+  if (step.value === 'handwriting') return '手写录入日程'
   return '新建日程'
 })
 
@@ -326,38 +319,18 @@ const reminderActions = [
 ]
 
 function onBack() {
-  if (step.value === 'form' || step.value === 'voice' || step.value === 'handwriting') {
-    step.value = 'select'
-    resetRecording()
-  } else {
-    router.back()
-  }
+  router.back()
 }
 
-function resetToSelect() {
-  step.value = 'select'
-  resetRecording()
-  if (ctx.value) {
-    ctx.value.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
-  }
-  hasInk.value = false
-  inkLines.value = []
-}
-
-function selectMode(m) {
-  source.value = m
-  if (m === 'text') {
-    // 默认值
-    const now = new Date()
-    now.setMinutes(0, 0, 0)
-    form.startTime = new Date(now.getTime() + 60 * 60000).toISOString()
-    form.endTime = new Date(now.getTime() + 2 * 60 * 60000).toISOString()
-    form.reminderOffset = '提前 15 分钟'
-    form.reminderTime = new Date(now.getTime() + 45 * 60000).toISOString()
-    step.value = 'form'
-  } else {
-    step.value = m
-  }
+// 录入方式已在入口弹层选好；文本录入（或直达）需预填默认时间
+function ensureDefaults() {
+  if (form.startTime) return
+  const now = new Date()
+  now.setMinutes(0, 0, 0)
+  form.startTime = new Date(now.getTime() + 60 * 60000).toISOString()
+  form.endTime = new Date(now.getTime() + 2 * 60 * 60000).toISOString()
+  form.reminderOffset = '提前 15 分钟'
+  form.reminderTime = new Date(now.getTime() + 45 * 60000).toISOString()
 }
 
 /* ============== 语音 ============== */
@@ -406,6 +379,7 @@ async function processVoice() {
   const result = await extractScheduleApi(asrResult.value)
   aiProcessing.value = false
   applyAiResult(result.data)
+  ensureDefaults()
   step.value = 'form'
 }
 
@@ -481,6 +455,7 @@ async function processHandwriting() {
   asrConfidence.value = 82
   const ai = await extractScheduleApi(recognized)
   applyAiResult(ai.data)
+  ensureDefaults()
   step.value = 'form'
 }
 
@@ -601,24 +576,27 @@ async function onSave() {
 }
 
 onMounted(async () => {
-  // 关联客户选择器需要客户数据
-  customerStore.loadCustomers().catch(() => {})
+  // 关联客户选择器需要客户数据（等待加载完成再匹配预填）
+  try {
+    await customerStore.loadCustomers()
+  } catch (e) { /* 加载失败不阻塞录入 */ }
+
   // 支持从客户详情页跳转预填关联客户：/schedules/create?customerId=xxx&customerName=xxx
   const qId = route.query.customerId
   const qName = route.query.customerName
   if (qId) {
-    // 客户详情跳转过来：跳过方式选择，直接进表单
-    const matched = customerStore.customers.find((c) => c.id === qId)
+    const matched = customerStore.customers.find((c) => String(c.id) === String(qId))
     if (matched) {
       form.customerId = matched.id
       form.customerName = matched.name
     } else if (qName) {
       form.customerName = decodeURIComponent(qName)
     }
-    step.value = 'form'
   }
+  // 手写录入为初始步骤时初始化画布（watch 只在步骤切换时触发，不含初值）
   if (step.value === 'handwriting') {
-    nextTick(() => initCanvas())
+    await nextTick()
+    initCanvas()
   }
 })
 
@@ -641,53 +619,6 @@ onBeforeUnmount(() => {
   min-height: 100vh;
   padding-bottom: 40px;
 }
-
-.hero {
-  text-align: center;
-  padding: 24px 16px 8px;
-}
-.hero h3 {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 12px 0 6px;
-}
-.hero p {
-  font-size: 14px;
-  color: var(--text-tertiary);
-}
-
-.methods {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.method {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--surface-container);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  box-shadow: var(--shadow-card);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.method:active { transform: scale(0.98); }
-.m-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.m-text { flex: 1; }
-.m-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.m-desc { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
 
 /* 语音 */
 .voice-step { padding: 24px 16px; }
@@ -718,6 +649,16 @@ onBeforeUnmount(() => {
 }
 .voice-status { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .voice-tip { font-size: 14px; color: var(--text-tertiary); margin-top: 8px; }
+.voice-extra {
+  text-align: center;
+  margin-top: 12px;
+}
+.voice-extra span {
+  font-size: 13px;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 6px 10px;
+}
 
 .asr-card {
   background: var(--surface-container);

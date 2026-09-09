@@ -1,11 +1,11 @@
 <template>
-  <MainLayout>
-    <div class="profile-page">
-      <!-- 顶部蓝青渐变大色块 -->
-      <div class="hero">
-        <div class="hero-nav">
-          <span class="hero-nav-title">个人中心</span>
-        </div>
+  <div class="profile-page">
+    <!-- 顶部蓝青渐变大色块 -->
+    <div class="hero">
+      <div class="hero-nav" @click="router.back()">
+        <van-icon name="arrow-left" color="#FFFFFF" size="18" />
+        <span class="hero-nav-title">个人中心</span>
+      </div>
         <div class="user-row">
           <div class="avatar">{{ (userInfo?.name || '李').charAt(0) }}</div>
           <div class="user-text">
@@ -114,7 +114,6 @@
         </div>
       </van-dialog>
     </div>
-  </MainLayout>
 </template>
 
 <script setup>
@@ -125,7 +124,6 @@ import { useAuthStore } from '../../stores/auth'
 import { useProductStore } from '../../stores/product'
 import { useCustomerStore } from '../../stores/customer'
 import { useScheduleStore } from '../../stores/schedule'
-import MainLayout from '../../layouts/MainLayout.vue'
 import VoiceMic from '../../components/VoiceMic.vue'
 
 const router = useRouter()
@@ -173,7 +171,10 @@ function submitFeedback() {
   align-items: center;
   gap: 6px;
   padding: 6px 0 14px;
+  cursor: pointer;
+  width: fit-content;
 }
+.hero-nav:active { opacity: 0.75; }
 
 .hero-nav-title {
   font-size: 16px;

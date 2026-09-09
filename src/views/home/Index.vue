@@ -82,7 +82,7 @@
             <rect x="22" y="34" width="12" height="2.5" rx="1" fill="rgba(59,130,246,0.4)" />
           </svg>
           <p>今日暂无日程，享受轻松的一天</p>
-          <van-button size="small" round type="primary" @click="$router.push('/schedules/create')">+ 新建</van-button>
+          <van-button size="small" round type="primary" @click="showScheduleSheet = true">+ 新建</van-button>
         </div>
       </div>
 
@@ -104,6 +104,8 @@
 
     <!-- 录入产品方式选择弹框 -->
     <ProductMethodSheet v-model:show="showMethodSheet" />
+    <!-- 新建日程方式选择弹框 -->
+    <ScheduleMethodSheet v-model:show="showScheduleSheet" />
   </MainLayout>
 </template>
 
@@ -116,6 +118,7 @@ import { useProductStore } from '../../stores/product'
 import { useCustomerStore } from '../../stores/customer'
 import MainLayout from '../../layouts/MainLayout.vue'
 import ProductMethodSheet from '../../components/ProductMethodSheet.vue'
+import ScheduleMethodSheet from '../../components/ScheduleMethodSheet.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -157,7 +160,7 @@ const quickActions = [
     label: '新建日程',
     icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 3H18V1H16V3H8V1H6V3H5C3.9 3 3 3.9 3 5V21C3 22.1 3.9 23 5 23H19C20.1 23 21 22.1 21 21V5C21 3.9 20.1 3 19 3ZM17 14H13V18H11V14H7V12H11V8H13V12H17V14Z" fill="#3B82F6"/></svg>',
     bg: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(6,182,212,0.05))',
-    action: () => router.push('/schedules/create'),
+    action: () => { showScheduleSheet.value = true },
   },
   {
     label: '录入产品',

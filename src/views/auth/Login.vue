@@ -274,6 +274,7 @@ async function onSubmit() {
   border-radius: var(--radius-lg);
   padding: 24px 16px;
   box-shadow: var(--shadow-card);
+  position: relative;
 }
 
 .form-card::before {

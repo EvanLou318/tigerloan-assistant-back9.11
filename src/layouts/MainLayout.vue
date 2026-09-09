@@ -37,7 +37,6 @@ const tabs = computed(() => [
   { to: '/products', label: '产品', icon: 'apps-o', match: ['/products'] },
   { to: '/customers', label: '客户', icon: 'friends-o', match: ['/customers'] },
   { to: '/schedules', label: '日程', icon: 'todo-list-o', match: ['/schedules'], badge: scheduleStore.todayCount },
-  { to: '/profile', label: '我的', icon: 'manager-o', match: ['/profile'] },
 ])
 
 function isActive(item) {
