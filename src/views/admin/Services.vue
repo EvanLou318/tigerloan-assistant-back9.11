@@ -7,6 +7,11 @@
       </div>
     </div>
 
+    <div v-if="loadError" class="error-banner">
+      ⚠️ {{ loadError }}
+      <button class="retry-btn" @click="load">重试</button>
+    </div>
+
     <div v-if="loading" class="loading">加载中...</div>
 
     <div v-for="g in groups" :key="g.category" class="cat-card">
@@ -158,6 +163,7 @@ const canManage = computed(() => {
 
 const groups = ref([])
 const loading = ref(false)
+const loadError = ref('')
 const testing = ref(0)
 const testResults = ref({})
 
@@ -180,10 +186,11 @@ const typeLabel = (t) => TYPE_LABELS[t] || t
 
 async function load() {
   loading.value = true
+  loadError.value = ''
   try {
     groups.value = await fetchServiceGroups()
   } catch (e) {
-    /* 拦截器已提示 */
+    loadError.value = `服务配置加载失败：${e.message || '请确认后端服务已启动'}`
   } finally {
     loading.value = false
   }
@@ -304,6 +311,31 @@ onMounted(load)
 </script>
 
 <style scoped>
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #FCEBEB;
+  color: #A32D2D;
+  border: 1px solid #F5C6C6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+}
+
+.retry-btn {
+  border: 1px solid #E0A0A0;
+  background: #fff;
+  color: #A32D2D;
+  border-radius: 8px;
+  padding: 5px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.retry-btn:hover {
+  background: #FBF0F0;
+}
+
 .services-page {
   display: flex;
   flex-direction: column;

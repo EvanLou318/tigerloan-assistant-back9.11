@@ -1,5 +1,11 @@
 <template>
   <div class="page">
+    <!-- 加载失败提示（不再静默空白） -->
+    <div v-if="loadError" class="error-banner">
+      ⚠️ {{ loadError }}
+      <button class="retry-btn" @click="loadAll">重试</button>
+    </div>
+
     <!-- 脱敏开关 -->
     <div class="panel mask-panel" v-if="canManageSettings">
       <div class="mask-head">
@@ -76,6 +82,44 @@
         <button class="primary-btn" :disabled="saving" @click="savePerms">保存授权</button>
       </div>
     </div>
+
+    <!-- 操作审计 -->
+    <div v-if="canViewAudit" class="panel audit-panel">
+      <div class="matrix-head">
+        <div class="panel-title">操作审计</div>
+        <div class="audit-filter">
+          <select v-model="auditAction" class="audit-select" @change="loadAudit">
+            <option value="">全部动作</option>
+            <option v-for="(label, code) in ACTION_LABELS" :key="code" :value="code">{{ label }}</option>
+          </select>
+          <button class="ghost-btn" @click="loadAudit">刷新</button>
+        </div>
+      </div>
+
+      <div v-if="auditLoading" class="audit-empty">加载中...</div>
+      <div v-else-if="auditError" class="audit-empty">⚠️ {{ auditError }}</div>
+      <div v-else-if="!auditLogs.length" class="audit-empty">暂无审计记录（执行敏感操作后自动留痕）</div>
+      <table v-else class="data-table audit-table">
+        <thead>
+          <tr>
+            <th style="width: 150px">时间</th>
+            <th style="width: 100px">操作人</th>
+            <th style="width: 140px">动作</th>
+            <th>对象</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="log in auditLogs" :key="log.id">
+            <td class="audit-time">{{ log.createdAt }}</td>
+            <td>{{ log.userName || `用户${log.userId}` }}</td>
+            <td><span class="audit-action" :class="actionClass(log.action)">{{ ACTION_LABELS[log.action] || log.action }}</span></td>
+            <td>{{ log.target || '—' }}</td>
+            <td class="audit-detail">{{ log.detail || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
@@ -89,6 +133,7 @@ import {
   fetchSettings,
   updateSettings,
   fetchMaskStatus,
+  fetchAuditLogs,
 } from '../../api/admin'
 
 const catalog = ref([])
@@ -99,12 +144,73 @@ const saving = ref(false)
 const settings = ref({ maskSensitive: true, maskedPhoneVisibleChars: 3 })
 const settingsLoaded = ref(false)
 const maskStatus = ref({ maskOn: true, canSeeRaw: false })
+const loadError = ref('')
+
+// 审计
+const ACTION_LABELS = {
+  'user.create': '创建用户',
+  'user.role_change': '调整角色',
+  'user.password_reset': '重置密码',
+  'user.delete': '删除用户',
+  'role.perms_update': '更新权限',
+  'settings.update': '系统设置',
+  'service.create': '新增供应商',
+  'service.update': '更新供应商',
+  'service.delete': '删除供应商',
+  'service.default': '切换默认',
+  'customer.delete': '删除客户',
+}
+const auditLogs = ref([])
+const auditLoading = ref(false)
+const auditError = ref('')
+const auditAction = ref('')
 
 const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
 const userPerms = userInfo.permissions ?? null // null = 旧版本登录态，放行展示
 const hasPermUI = (code) => userPerms === null || userPerms.includes(code)
 const canManageRoles = hasPermUI('admin.roles.manage')
 const canManageSettings = hasPermUI('admin.settings.manage')
+const canViewAudit = hasPermUI('admin.audit.view')
+
+const actionClass = (action) => {
+  if (action.endsWith('.delete')) return 'danger'
+  if (action.startsWith('role.') || action.startsWith('settings.')) return 'warn'
+  return 'info'
+}
+
+async function loadAudit() {
+  auditLoading.value = true
+  auditError.value = ''
+  try {
+    auditLogs.value = await fetchAuditLogs(100, auditAction.value)
+  } catch (e) {
+    auditError.value = e.message || '审计日志加载失败'
+  } finally {
+    auditLoading.value = false
+  }
+}
+
+async function loadAll() {
+  loadError.value = ''
+  try {
+    const [cats, rs] = await Promise.all([fetchPermissions(), fetchRoles()])
+    catalog.value = cats
+    roles.value = rs
+    currentRole.value = rs[0] || null
+    resetDraft()
+  } catch (e) {
+    loadError.value = `权限数据加载失败：${e.message || '请确认后端服务已启动'}`
+  }
+
+  try {
+    settings.value = await fetchSettings()
+  } catch (e) { /* 无 settings.manage 权限时读取失败，维持默认 */ }
+  settingsLoaded.value = true
+
+  fetchMaskStatus().then((s) => (maskStatus.value = s)).catch(() => {})
+
+  if (canViewAudit) loadAudit()
+}
 
 // 按模块分组
 const groupedPermissions = computed(() => {
@@ -168,25 +274,122 @@ async function toggleMask(e) {
   }
 }
 
-onMounted(async () => {
-  try {
-    const [cats, rs] = await Promise.all([fetchPermissions(), fetchRoles()])
-    catalog.value = cats
-    roles.value = rs
-    currentRole.value = rs[0] || null
-    resetDraft()
-  } catch (e) { /* 拦截器已提示 */ }
-
-  try {
-    settings.value = await fetchSettings()
-  } catch (e) { /* 无 settings.manage 权限时读取失败，维持默认 */ }
-  settingsLoaded.value = true
-
-  fetchMaskStatus().then((s) => (maskStatus.value = s)).catch(() => {})
-})
+onMounted(loadAll)
 </script>
 
 <style scoped>
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #FCEBEB;
+  color: #A32D2D;
+  border: 1px solid #F5C6C6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.retry-btn {
+  border: 1px solid #E0A0A0;
+  background: #fff;
+  color: #A32D2D;
+  border-radius: 8px;
+  padding: 5px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.retry-btn:hover {
+  background: #FBF0F0;
+}
+
+/* 审计面板 */
+.audit-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audit-select {
+  border: 1px solid #E0E5F0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: #3D4A6B;
+  background: #fff;
+  outline: none;
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.audit-table th {
+  text-align: left;
+  padding: 10px 8px;
+  color: #7C8DB5;
+  font-weight: 500;
+  font-size: 12px;
+  border-bottom: 1px solid #EDF0F7;
+  white-space: nowrap;
+}
+
+.audit-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #F4F6FB;
+  color: #3D4A6B;
+  vertical-align: top;
+}
+
+.audit-table tr:last-child td {
+  border-bottom: none;
+}
+
+.audit-time {
+  font-family: Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: #7C8DB5;
+  white-space: nowrap;
+}
+
+.audit-detail {
+  color: #5A6A8F;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.audit-action {
+  display: inline-block;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.audit-action.info {
+  background: #EBF1FF;
+  color: #2E6BFF;
+}
+.audit-action.warn {
+  background: #FBF3E4;
+  color: #BA7517;
+}
+.audit-action.danger {
+  background: #FCEBEB;
+  color: #A32D2D;
+}
+
+.audit-empty {
+  padding: 32px;
+  text-align: center;
+  color: #98A5C3;
+  font-size: 13px;
+  background: #FAFBFD;
+  border-radius: 10px;
+}
+
 .panel {
   background: #fff;
   border-radius: 14px;

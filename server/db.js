@@ -167,6 +167,20 @@ CREATE TABLE IF NOT EXISTS service_providers (
   updated_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_sp_category ON service_providers(category);
+
+-- 操作审计日志：权限/用户/设置/三方服务/客户删除等敏感操作留痕
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER NOT NULL,
+  user_name  TEXT NOT NULL DEFAULT '',
+  action     TEXT NOT NULL,               -- 动作码，如 user.create / role.perms_update
+  target     TEXT NOT NULL DEFAULT '',    -- 操作对象简述，如 用户ID 3 / 角色 supervisor
+  detail     TEXT NOT NULL DEFAULT '',    -- 补充说明（不含敏感明文）
+  ip         TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
 `)
 
 // ---------- 行 → 前端对象 映射（snake_case → camelCase） ----------

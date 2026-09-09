@@ -5,6 +5,7 @@ import { Router } from 'express'
 import { db, rowToCustomer, rowToMaterial, rowToSimulation, getMaterialsByCustomer } from '../db.js'
 import { ok, fail, genId, fmtDateTime, BizError } from '../utils.js'
 import { applyMasking } from '../rbac.js'
+import { writeAudit } from '../audit.js'
 
 const router = Router()
 
@@ -122,10 +123,11 @@ router.put('/:id', (req, res) => {
 
 // DELETE /api/customers/:id  删除客户（材料级联删除）
 router.delete('/:id', (req, res) => {
-  findCustomerRow(req.params.id, req.user.id)
+  const row = findCustomerRow(req.params.id, req.user.id)
   db.prepare('DELETE FROM materials WHERE customer_id = ?').run(req.params.id)
   db.prepare('DELETE FROM simulations WHERE customer_id = ? AND user_id = ?').run(req.params.id, req.user.id)
   db.prepare('DELETE FROM customers WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id)
+  writeAudit(req, 'customer.delete', `${row.name}（ID ${row.id}）`, '级联删除材料与推演记录')
   ok(res, { deleted: true })
 })
 

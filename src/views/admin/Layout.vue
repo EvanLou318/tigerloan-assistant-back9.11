@@ -41,7 +41,9 @@
       <header class="admin-topbar">
         <h1 class="page-title">{{ pageTitle }}</h1>
         <div class="topbar-right">
-          <span class="env-badge">Demo 环境 · AI Provider: Mock</span>
+          <span class="env-badge" :class="{ live: aiProvider === 'Real' }">
+            Demo 环境 · AI Provider: {{ aiProviderLabel }}
+          </span>
         </div>
       </header>
       <div class="admin-content">
@@ -52,13 +54,24 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import request from '../../api'
 
 const route = useRoute()
 const router = useRouter()
 
 const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null')
+
+// 顶栏 AI 运行模式徽标：读取健康检查的真实状态（Real / Mixed / Mock）
+const aiProvider = ref('Mock')
+const aiProviderLabel = computed(() => ({ Real: '真实调用', Mixed: '混合模式', Mock: 'Mock' }[aiProvider.value] || aiProvider.value))
+onMounted(async () => {
+  try {
+    const h = await request.get('/health')
+    if (h?.aiProvider) aiProvider.value = h.aiProvider
+  } catch { /* 后端未启动时保持 Mock 展示 */ }
+})
 
 const navItems = [
   { path: '/admin/dashboard', label: '数据看板', icon: '📊', perm: 'admin.dashboard.view' },
@@ -262,6 +275,11 @@ function onExit() {
   background: #EBF1FF;
   padding: 5px 12px;
   border-radius: 999px;
+}
+
+.env-badge.live {
+  color: #0F6E56;
+  background: #E1F5EE;
 }
 
 .admin-content {

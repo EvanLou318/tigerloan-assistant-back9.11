@@ -56,6 +56,11 @@ export function deleteAdminUser(id) {
   return request.delete(`/admin/users/${id}`)
 }
 
+// ---------- 操作审计日志 ----------
+export function fetchAuditLogs(limit = 100, action = '') {
+  return request.get('/admin/audit-logs', { params: { limit, action: action || undefined } })
+}
+
 // ---------- 三方服务供应商管理 ----------
 export function fetchServiceGroups() {
   return request.get('/services')

@@ -20,6 +20,7 @@ export const PERMISSION_CATALOG = [
   { code: 'admin.settings.manage', name: '修改系统设置（脱敏开关）', module: '用户与安全' },
   { code: 'admin.services.view', name: '查看三方服务配置', module: '三方服务' },
   { code: 'admin.services.manage', name: '管理三方服务（增删改/启停/设默认/连通测试）', module: '三方服务' },
+  { code: 'admin.audit.view', name: '查看操作审计日志', module: '用户与安全' },
 ]
 
 // ---------- 角色定义与默认授权 ----------

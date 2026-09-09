@@ -6,6 +6,7 @@ import { Router } from 'express'
 import { db } from '../db.js'
 import { ok, fail, genId, fmtDateTime, BizError } from '../utils.js'
 import { requirePerm } from '../middleware/auth.js'
+import { writeAudit } from '../audit.js'
 import {
   SERVICE_CATEGORIES,
   isValidCategory,
@@ -99,6 +100,7 @@ router.post('/', requirePerm('admin.services.manage'), wrap(async (req, res) => 
     .prepare(`INSERT INTO service_providers (category, name, provider_type, base_url, api_key, secret_key, model, enabled, is_default, remark, created_at, updated_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(category, name.trim(), providerType || 'custom', baseUrl || '', apiKey || '', secretKey || '', model || '', enabled === false ? 0 : 1, setDefault, remark || '', now, now)
+  writeAudit(req, 'service.create', `${name.trim()}（${category}）`, `类型 ${providerType || 'custom'}${setDefault ? '，已设为默认' : ''}`)
   ok(res, { id: info.lastInsertRowid })
 }))
 
@@ -138,6 +140,7 @@ router.put('/:id', requirePerm('admin.services.manage'), wrap(async (req, res) =
       fmtDateTime(),
       row.id
     )
+  writeAudit(req, 'service.update', `${row.name}（${row.category}）`, Object.keys(b).filter((k) => k !== 'apiKey' && k !== 'secretKey').join('、') || '无字段变更')
   ok(res, { id: row.id })
 }))
 
@@ -153,6 +156,7 @@ router.post('/:id/default', requirePerm('admin.services.manage'), (req, res) => 
     db.prepare('UPDATE service_providers SET is_default = 1, updated_at = ? WHERE id = ?').run(fmtDateTime(), row.id)
   })
   tx()
+  writeAudit(req, 'service.default', `${row.name}（${row.category}）`, '设为分类默认供应商')
   ok(res, { id: row.id, category: row.category })
 })
 
@@ -161,6 +165,7 @@ router.delete('/:id', requirePerm('admin.services.manage'), (req, res) => {
   const row = db.prepare('SELECT * FROM service_providers WHERE id = ?').get(req.params.id)
   if (!row) throw new BizError('供应商不存在', 404)
   db.prepare('DELETE FROM service_providers WHERE id = ?').run(row.id)
+  writeAudit(req, 'service.delete', `${row.name}（${row.category}）`)
   ok(res, { id: row.id })
 })
 

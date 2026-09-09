@@ -24,6 +24,7 @@ import dashboardRoutes from './routes/dashboard.js'
 import aiRoutes from './routes/ai.js'
 import adminRoutes from './routes/admin.js'
 import serviceRoutes from './routes/services.js'
+import { SERVICE_CATEGORIES, getCategoryRuntime } from './services/ai/registry.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -49,9 +50,12 @@ app.use('/api/ai', authRequired, aiRoutes)
 app.use('/api/admin', authRequired, adminRoutes)
 app.use('/api/services', authRequired, serviceRoutes)
 
-// 健康检查
+// 健康检查（含 AI 各分类实际运行模式，供管理后台顶栏徽标展示）
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, data: { status: 'ok', aiProvider: config.aiProvider, time: new Date().toISOString() } })
+  const modes = SERVICE_CATEGORIES.map((c) => getCategoryRuntime(c.code).mode)
+  const realCount = modes.filter((m) => m === 'real').length
+  const summary = realCount === modes.length ? 'Real' : realCount > 0 ? 'Mixed' : 'Mock'
+  res.json({ success: true, data: { status: 'ok', aiProvider: summary, categories: modes, time: new Date().toISOString() } })
 })
 
 // ---------- 生产模式：托管前端构建产物（dist/） ----------
