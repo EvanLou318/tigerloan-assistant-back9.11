@@ -84,7 +84,7 @@
             <div class="cb-title"><AppIcon name="grid" :size="14" color="var(--color-primary)" /> 产品库（{{ msg.card.data.total }}）</div>
             <div v-for="p in msg.card.data.list" :key="p.id" class="cb-line">
               <span class="cb-text">{{ p.productName }}</span>
-              <span class="cb-rate">{{ p.minRate }}%~{{ p.maxRate }}%</span>
+              <span class="cb-rate">{{ p.minRate }}%~{{ p.maxRate }}%{{ p.rateType === 'monthly' ? ' /月' : '' }}</span>
             </div>
           </div>
 

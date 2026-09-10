@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS products (
   institution      TEXT NOT NULL DEFAULT '',
   min_rate         REAL NOT NULL DEFAULT 0,
   max_rate         REAL NOT NULL DEFAULT 0,
+  rate_type        TEXT NOT NULL DEFAULT 'annual',
   min_amount       REAL NOT NULL DEFAULT 0,
   max_amount       REAL NOT NULL DEFAULT 0,
   loan_term        TEXT NOT NULL DEFAULT '',
@@ -202,6 +203,16 @@ CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
 `)
 
+// ---------- 轻量迁移：为已存在的旧库补齐后加的列 ----------
+// CREATE TABLE IF NOT EXISTS 不会修改已有表，老库需要显式 ALTER
+function ensureColumn(table, column, ddl) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all()
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`)
+  }
+}
+ensureColumn('products', 'rate_type', "rate_type TEXT NOT NULL DEFAULT 'annual'")
+
 // ---------- 行 → 前端对象 映射（snake_case → camelCase） ----------
 
 export function rowToProduct(r) {
@@ -212,6 +223,7 @@ export function rowToProduct(r) {
     institution: r.institution,
     minRate: r.min_rate,
     maxRate: r.max_rate,
+    rateType: r.rate_type || 'annual',
     minAmount: r.min_amount,
     maxAmount: r.max_amount,
     loanTerm: r.loan_term,

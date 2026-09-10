@@ -41,14 +41,16 @@
         @click="openDetail(item)"
       >
         <div class="prio-bar" :class="`prio-${item.priority}`"></div>
-        <div class="time-block">
-          <div class="time-range">{{ formatTime(item.startTime) }}-{{ formatTime(item.endTime) }}</div>
-          <div class="prio-tag">{{ item.priority }}</div>
+        <div class="time-col">
+          <div class="t-start">{{ formatTime(item.startTime) }}</div>
+          <div class="t-end">{{ formatTime(item.endTime) }}</div>
+          <div class="t-date" v-if="!isToday(item)">{{ formatDay(item.startTime) }}</div>
         </div>
         <div class="info">
           <div class="title">
             <span class="type-icon" v-html="typeIcon(item.type)"></span>
-            {{ item.title }}
+            <span class="title-text">{{ item.title }}</span>
+            <span class="prio-chip" :class="`prio-chip-${item.priority}`">{{ prioText(item.priority) }}</span>
           </div>
           <div class="meta">
             <span v-if="item.location" class="meta-item">
@@ -62,9 +64,6 @@
             </span>
             <span v-if="isOverdue(item)" class="meta-item overdue-tag">已逾期</span>
           </div>
-        </div>
-        <div class="check-box" @click.stop="onToggleDone(item)">
-          <AppIcon :name="item.done ? 'check-circle' : 'circle'" :color="item.done ? '#12B76A' : '#CBD5E1'" :size="22" />
         </div>
       </div>
 
@@ -85,7 +84,7 @@
     </div>
 
     <!-- 日程详情底部面板 -->
-    <van-popup v-model:show="showDetail" position="bottom" round class="detail-popup" :style="{ paddingBottom: 'env(safe-area-inset-bottom)' }">
+    <van-popup v-model:show="showDetail" position="bottom" round class="detail-popup">
       <template v-if="detailItem">
         <div class="dp-handle"></div>
         <div class="dp-head">
@@ -134,25 +133,6 @@
         </div>
 
         <div class="dp-actions">
-          <van-button
-            v-if="!detailItem.done"
-            round block type="primary"
-            :loading="acting"
-            loading-text="处理中..."
-            @click="markDone(detailItem)"
-          >
-            <AppIcon name="check-circle" /> 标记完成
-          </van-button>
-          <van-button
-            v-else
-            round block
-            class="dp-restore"
-            :loading="acting"
-            loading-text="处理中..."
-            @click="markDone(detailItem)"
-          >
-            <AppIcon name="refresh" /> 恢复未完成
-          </van-button>
           <van-button plain round block class="dp-delete" @click="confirmDelete(detailItem)">删除日程</van-button>
         </div>
       </template>
@@ -184,7 +164,6 @@ const showMethodSheet = ref(false)
 
 // 详情底部面板
 const showDetail = ref(false)
-const acting = ref(false)
 const detailId = ref(null)
 const detailItem = computed(() => scheduleStore.schedules.find((s) => s.id === detailId.value) || null)
 
@@ -196,19 +175,6 @@ function openDetail(item) {
 function closeDetail() {
   showDetail.value = false
   detailId.value = null
-}
-
-async function markDone(item) {
-  acting.value = true
-  try {
-    await scheduleStore.toggleDone(item.id)
-    showSuccessToast(item.done ? '已恢复为未完成' : '已标记完成')
-    closeDetail()
-  } catch (e) {
-    showToast('操作失败，请重试')
-  } finally {
-    acting.value = false
-  }
 }
 
 function confirmDelete(item) {
@@ -271,6 +237,30 @@ function formatTime(iso) {
   return d.toTimeString().slice(0, 5)
 }
 
+function isToday(item) {
+  if (!item.startTime) return true
+  const d = new Date(item.startTime)
+  const n = new Date()
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate()
+}
+
+function formatDay(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const n = new Date()
+  const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const diff = Math.round((startOf(d) - startOf(n)) / 86400000)
+  if (diff === 0) return '今天'
+  if (diff === 1) return '明天'
+  if (diff === 2) return '后天'
+  if (diff === -1) return '昨天'
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
+
+function prioText(p) {
+  return p === 'P0' ? '紧急' : p === 'P1' ? '普通' : '低优'
+}
+
 function formatFullDate(iso) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -296,15 +286,6 @@ function typeIcon(type) {
   if (type === 'call') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 15.5C18.8 15.5 17.5 15.3 16.4 14.9C16 14.7 15.5 14.8 15.2 15.1L13.5 16.8C11.3 15.7 9.2 13.6 8.1 11.4L9.8 9.7C10.1 9.4 10.2 8.9 10 8.5C9.6 7.4 9.4 6.1 9.4 4.9C9.4 4.4 8.9 4 4.9 4H4.9C4.4 4 4 4.4 4 4.9C4 13.8 11.1 21 20 21C20.5 21 21 20.6 21 20.1V16.6C21 16.1 20.6 15.5 20 15.5Z" fill="#0EA5A5"/></svg>'
   if (type === 'meeting') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 12C14.2 12 16 10.2 16 8C16 5.8 14.2 4 12 4C9.8 4 8 5.8 8 8C8 10.2 9.8 12 12 12ZM12 14C8.7 14 2 15.7 2 19V21H22V19C22 15.7 15.3 14 12 14Z" fill="#7C6CF0"/></svg>'
   return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 16.2L4.8 12L3.4 13.4L9 19L21 7L19.6 5.6L9 16.2Z" fill="#2563EB"/></svg>'
-}
-
-async function onToggleDone(item) {
-  try {
-    await scheduleStore.toggleDone(item.id)
-    showSuccessToast(item.done ? '已恢复为未完成' : '已标记完成')
-  } catch (e) {
-    showToast('操作失败，请重试')
-  }
 }
 </script>
 
@@ -394,32 +375,18 @@ async function onToggleDone(item) {
 .schedule-card {
   display: flex;
   align-items: stretch;
-  gap: 10px;
-  padding-left: 0;
   overflow: hidden;
   background: var(--bg-card);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: 14px 14px 14px 0;
   box-shadow: var(--shadow-card);
   border: none;
   transition: all 0.2s;
 }
 .schedule-card:active { transform: scale(0.99); }
 .schedule-card.done { opacity: 0.55; }
-.schedule-card.done .title { text-decoration: line-through; }
+.schedule-card.done .title-text { text-decoration: line-through; }
 
-.time-block {
-  flex-shrink: 0;
-  width: 68px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 4px;
-  border-radius: 10px;
-  background: var(--d-schedule-50);
-  position: relative;
-}
 .prio-bar {
   width: 4px;
   border-radius: 4px 0 0 4px;
@@ -429,38 +396,80 @@ async function onToggleDone(item) {
 .prio-bar.prio-P0 { background: var(--d-alert-500); }
 .prio-bar.prio-P1 { background: var(--d-todo-500); }
 .prio-bar.prio-P2 { background: var(--d-schedule-600); }
-.time-range {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--d-schedule-800);
-  white-space: nowrap;
-  letter-spacing: -0.2px;
-  line-height: 1.2;
-}
-.prio-tag {
-  font-size: 11px;
-  font-weight: 700;
-  margin-top: 3px;
-  padding: 0 6px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.75);
-  color: var(--text-secondary);
-  border: none;
-  line-height: 1.5;
-}
-.prio-tag { color: var(--d-schedule-600); }
 
-.info { flex: 1; min-width: 0; }
+/* 时间列：开始时间突出、结束时间次级，不再用色块挤压 */
+.time-col {
+  flex-shrink: 0;
+  width: 58px;
+  padding: 2px 0 2px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.t-start {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums;
+}
+.t-end {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.t-date {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--d-schedule-600);
+  background: var(--d-schedule-50);
+  border-radius: 5px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  padding-left: 12px;
+  border-left: 1px solid var(--surface-container-high);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
 .title {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 6px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
-.type-icon { display: inline-flex; }
+.title-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prio-chip {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.6;
+  padding: 0 6px;
+  border-radius: 5px;
+  letter-spacing: 0.2px;
+}
+.prio-chip-P0 { background: var(--danger-container); color: var(--on-danger-container); }
+.prio-chip-P1 { background: var(--d-todo-50); color: var(--d-todo-800); }
+.prio-chip-P2 { background: var(--surface-container-high); color: var(--text-secondary); }
+.type-icon { display: inline-flex; flex-shrink: 0; }
 .meta {
   display: flex;
   flex-wrap: wrap;
@@ -475,12 +484,6 @@ async function onToggleDone(item) {
   padding: 1px 6px;
   border-radius: 4px;
   font-weight: 600;
-}
-
-.check-box {
-  display: flex;
-  align-items: center;
-  padding: 0 4px;
 }
 
 /* 空状态 */
@@ -527,7 +530,7 @@ async function onToggleDone(item) {
 .detail-popup {
   background: var(--surface-container-lowest);
   border-radius: 20px 20px 0 0;
-  padding: 10px 20px 20px;
+  padding: 10px 20px calc(24px + env(safe-area-inset-bottom));
   max-height: 82vh;
   overflow-y: auto;
 }

@@ -49,7 +49,6 @@ watch(visible, (val) => emit('update:show', val))
 const methods = [
   { name: '文本录入', desc: '手动填写标题、时间、地点', method: 'text', appIcon: 'edit' },
   { name: '语音录入', desc: '口述日程，AI 自动识别时间与优先级', method: 'voice', appIcon: 'mic' },
-  { name: '手写录入', desc: '手写便签，AI 识别后生成日程', method: 'handwriting', appIcon: 'pen' },
 ]
 
 function onSelect(action) {

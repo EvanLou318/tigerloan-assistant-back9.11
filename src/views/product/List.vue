@@ -65,7 +65,7 @@
                 <span class="info-value">{{ product.institution }}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">利率</span>
+                <span class="info-label">{{ product.rateType === 'monthly' ? '月利率' : '年利率' }}</span>
                 <span class="info-value rate">{{ product.minRate }}% - {{ product.maxRate }}%</span>
               </div>
               <div class="info-row">
@@ -75,10 +75,6 @@
             </div>
 
             <div class="card-footer">
-              <div class="source-tag">
-                <span class="source-icon" v-html="getSourceIcon(product.source)"></span>
-                {{ getSourceLabel(product.source) }}
-              </div>
               <div class="card-time">{{ product.createdAt.slice(5, 16) }}</div>
             </div>
           </div>
@@ -126,20 +122,6 @@ async function onRefresh() {
   }
 }
 
-function getSourceIcon(source) {
-  const icons = {
-    text: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" fill="#475569"/></svg>',
-    voice: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 14C13.1 14 14 13.1 14 12V6C14 4.9 13.1 4 12 4C10.9 4 10 4.9 10 6V12C10 13.1 10.9 14 12 14ZM17 12C17 14.8 14.8 17 12 17C9.2 17 7 14.8 7 12H5C5 15.3 7.4 18.1 10.5 18.8V22H13.5V18.8C16.6 18.1 19 15.3 19 12H17Z" fill="#475569"/></svg>',
-    image: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M21 19V5C21 3.9 20.1 3 19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19ZM8.5 13.5L11 16.5L14.5 12L19 18H5L8.5 13.5Z" fill="#475569"/></svg>',
-    pdf: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" fill="#475569"/></svg>',
-  }
-  return icons[source] || icons.text
-}
-
-function getSourceLabel(source) {
-  const labels = { text: '文本录入', voice: '语音录入', image: '图片录入', pdf: 'PDF录入' }
-  return labels[source] || '文本录入'
-}
 </script>
 
 <style scoped>
@@ -271,19 +253,11 @@ function getSourceLabel(source) {
 
 .card-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-top: 12px;
   padding-top: 12px;
   border-top: none;
-}
-
-.source-tag {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--d-product-600);
 }
 
 .card-time {

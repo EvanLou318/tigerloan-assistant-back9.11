@@ -32,11 +32,13 @@ router.post('/', (req, res) => {
   const id = genId('p')
   const now = fmtDateTime()
   db.prepare(`
-    INSERT INTO products (id, user_id, product_name, institution, min_rate, max_rate, min_amount, max_amount,
+    INSERT INTO products (id, user_id, product_name, institution, min_rate, max_rate, rate_type, min_amount, max_amount,
       loan_term, repayment_method, conditions, status, source, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(id, req.user.id, b.productName, b.institution,
-      Number(b.minRate) || 0, Number(b.maxRate) || 0, Number(b.minAmount) || 0, Number(b.maxAmount) || 0,
+      Number(b.minRate) || 0, Number(b.maxRate) || 0,
+      b.rateType === 'monthly' ? 'monthly' : 'annual',
+      Number(b.minAmount) || 0, Number(b.maxAmount) || 0,
       b.loanTerm || '', b.repaymentMethod || '', b.conditions || '',
       'active', b.source || 'text', now)
 
@@ -51,11 +53,13 @@ router.put('/:id', (req, res) => {
 
   db.prepare(`
     UPDATE products SET
-      product_name = ?, institution = ?, min_rate = ?, max_rate = ?, min_amount = ?, max_amount = ?,
+      product_name = ?, institution = ?, min_rate = ?, max_rate = ?, rate_type = ?, min_amount = ?, max_amount = ?,
       loan_term = ?, repayment_method = ?, conditions = ?, updated_at = ?
     WHERE id = ? AND user_id = ?`)
     .run(b.productName || '', b.institution || '',
-      Number(b.minRate) || 0, Number(b.maxRate) || 0, Number(b.minAmount) || 0, Number(b.maxAmount) || 0,
+      Number(b.minRate) || 0, Number(b.maxRate) || 0,
+      b.rateType === 'monthly' ? 'monthly' : 'annual',
+      Number(b.minAmount) || 0, Number(b.maxAmount) || 0,
       b.loanTerm || '', b.repaymentMethod || '', b.conditions || '',
       now, req.params.id, req.user.id)
 

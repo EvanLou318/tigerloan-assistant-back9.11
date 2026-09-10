@@ -25,12 +25,12 @@
       <div class="rate-card">
         <div class="rate-row">
           <div class="rate-item">
-            <div class="rate-value">{{ product.minRate }}<span class="rate-unit">%</span></div>
-            <div class="rate-label">最低年利率</div>
+            <div class="rate-value">{{ product.minRate }}<span class="rate-unit">{{ rateUnit }}</span></div>
+            <div class="rate-label">最低{{ rateTypeLabel }}</div>
           </div>
           <div class="rate-item">
-            <div class="rate-value">{{ product.maxRate }}<span class="rate-unit">%</span></div>
-            <div class="rate-label">最高年利率</div>
+            <div class="rate-value">{{ product.maxRate }}<span class="rate-unit">{{ rateUnit }}</span></div>
+            <div class="rate-label">最高{{ rateTypeLabel }}</div>
           </div>
         </div>
         <div class="amount-info">
@@ -116,6 +116,11 @@ const sourceLabels = {
   image: '图片录入',
   pdf: 'PDF录入',
 }
+
+// 利率类型：年利率 / 月利率
+const isMonthly = computed(() => product.value?.rateType === 'monthly')
+const rateTypeLabel = computed(() => (isMonthly.value ? '月利率' : '年利率'))
+const rateUnit = computed(() => (isMonthly.value ? '%/月' : '%'))
 
 const actions = computed(() => {
   if (!product.value) return []

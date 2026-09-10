@@ -182,12 +182,30 @@
               @mousedown.prevent="pickInstitution(ins)"
             >{{ ins }}</span>
           </div>
-          <van-field v-model="formData.minRate" label="最低年利率" type="number" placeholder="如 3.45" :rules="[{ required: true, message: '请输入最低年利率' }]">
-            <template #button><span style="color: var(--text-tertiary);">%</span></template>
+          <!-- 利率类型：年利率 / 月利率 -->
+          <van-field
+            :model-value="rateTypeLabel"
+            label="利率类型"
+            placeholder="请选择利率类型"
+            readonly
+            is-link
+            @click="showRateTypeSheet = true"
+          />
+          <van-action-sheet
+            v-model:show="showRateTypeSheet"
+            title="选择利率类型"
+            :actions="rateTypeActions"
+            cancel-text="取消"
+            close-on-click-action
+            @select="onPickRateType"
+          />
+          <van-field v-model="formData.minRate" :label="`最低${rateTypeLabel}`" type="number" :placeholder="ratePlaceholder" :rules="[{ required: true, message: `请输入最低${rateTypeLabel}` }]">
+            <template #button><span class="unit">{{ rateTypeSuffix }}</span></template>
           </van-field>
-          <van-field v-model="formData.maxRate" label="最高年利率" type="number" placeholder="如 5.6">
-            <template #button><span style="color: var(--text-tertiary);">%</span></template>
+          <van-field v-model="formData.maxRate" :label="`最高${rateTypeLabel}`" type="number" :placeholder="ratePlaceholderMax">
+            <template #button><span class="unit">{{ rateTypeSuffix }}</span></template>
           </van-field>
+          <p v-if="formData.rateType === 'monthly'" class="rate-hint">按月利率录入，折合年化约 {{ annualEquivalent }}</p>
           <van-field v-model="formData.minAmount" label="最低额度" type="digit" placeholder="如 1" :rules="[{ required: true, message: '请输入最低额度' }]">
             <template #button><span style="color: var(--text-tertiary);">万</span></template>
           </van-field>
@@ -298,6 +316,30 @@ function onPickRepayment(action) {
   formData.repaymentMethod = action.name
 }
 
+// 利率类型：年利率 / 月利率（默认年利率，兼容历史数据）
+const RATE_TYPE_OPTIONS = [
+  { name: '年利率', value: 'annual' },
+  { name: '月利率', value: 'monthly' },
+]
+const rateTypeActions = RATE_TYPE_OPTIONS
+const showRateTypeSheet = ref(false)
+function onPickRateType(action) {
+  formData.rateType = action.value
+}
+const rateTypeLabel = computed(() =>
+  formData.rateType === 'monthly' ? '月利率' : '年利率'
+)
+const rateTypeSuffix = computed(() => (formData.rateType === 'monthly' ? '%/月' : '%'))
+const ratePlaceholder = computed(() => (formData.rateType === 'monthly' ? '如 0.29' : '如 3.45'))
+const ratePlaceholderMax = computed(() => (formData.rateType === 'monthly' ? '如 0.47' : '如 5.6'))
+// 月利率 → 年化（单利换算，仅作提示）
+const annualEquivalent = computed(() => {
+  const mn = Number(formData.minRate) || 0
+  const mx = Number(formData.maxRate) || 0
+  const f = (v) => (Math.round(v * 12 * 100) / 100).toFixed(2)
+  return mn === mx ? `${f(mn)}%` : `${f(mn)}% ~ ${f(mx)}%`
+})
+
 // 所属机构历史联想
 const institutionFocused = ref(false)
 const institutionSuggestions = computed(() => {
@@ -343,6 +385,7 @@ const formData = reactive({
   institution: '',
   minRate: '',
   maxRate: '',
+  rateType: 'annual',
   minAmount: '',
   maxAmount: '',
   loanTerm: '',
@@ -494,6 +537,7 @@ function fillFormData(data) {
     institution: data.institution || '',
     minRate: String(data.minRate || ''),
     maxRate: String(data.maxRate || ''),
+    rateType: data.rateType === 'monthly' ? 'monthly' : 'annual',
     minAmount: String(data.minAmount || ''),
     maxAmount: String(data.maxAmount || ''),
     loanTerm: data.loanTerm || '',
@@ -509,7 +553,7 @@ function fillFormData(data) {
 async function onSave() {
   // 校验利率区间
   if (formData.maxRate && Number(formData.minRate) > Number(formData.maxRate)) {
-    showToast('最低年利率不能大于最高年利率')
+    showToast(`最低${rateTypeLabel.value}不能大于最高${rateTypeLabel.value}`)
     return
   }
   // 校验额度区间
@@ -594,6 +638,14 @@ async function onSave() {
 .suggest-chip:active {
   background: var(--primary-container);
   color: var(--color-primary);
+}
+
+/* 月利率 → 年化提示 */
+.rate-hint {
+  margin: -6px 0 12px;
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
 }
 
 /* 贷款期限：单行内双输入 */

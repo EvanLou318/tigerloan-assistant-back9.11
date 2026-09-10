@@ -39,40 +39,6 @@
       </div>
     </div>
 
-    <!-- 手写录入（?mode=handwriting 直达） -->
-    <div v-else-if="step === 'handwriting'" class="handwriting-step">
-      <div class="hw-card">
-        <div class="hw-header">
-          <span class="hw-title">手写便签</span>
-          <button class="tool-btn" @click="clearCanvas">
-            <AppIcon name="trash" :size="14" /> 清空
-          </button>
-        </div>
-        <canvas
-          ref="canvasRef"
-          class="hw-canvas"
-          @pointerdown.prevent="onPenDown"
-          @pointermove.prevent="onPenMove"
-          @pointerup="onPenUp"
-          @pointercancel="onPenUp"
-          @pointerleave="onPenUp"
-        ></canvas>
-        <div class="hw-tip" :class="{ done: hasInk }">{{ hasInk ? '已书写，可点击下方识别' : '在格内写下日程内容，如：明天下午3点与张总面谈' }}</div>
-      </div>
-      <div class="bottom-actions">
-        <van-button
-          round block
-          type="primary"
-          :disabled="!hasInk"
-          :loading="aiProcessing"
-          loading-text="AI 识别中..."
-          @click="processHandwriting"
-        >
-          <AppIcon name="scan" /> AI 识别并生成日程
-        </van-button>
-      </div>
-    </div>
-
     <!-- 3. 表单确认（文本录入 / AI 提取后共用） -->
     <div v-else-if="step === 'form'" class="form-step">
       <div class="form-header">
@@ -204,7 +170,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
@@ -218,10 +184,10 @@ const route = useRoute()
 const scheduleStore = useScheduleStore()
 const customerStore = useCustomerStore()
 
-// 录入方式已在入口弹层选择：?mode=text|voice|handwriting，缺省（如客户详情跳转）直达文本表单
-const enteredMode = route.query.mode === 'voice' || route.query.mode === 'handwriting' ? route.query.mode : 'text'
-const step = ref(enteredMode === 'text' ? 'form' : enteredMode) // form | voice | handwriting
-const source = ref(enteredMode) // text | voice | handwriting
+// 录入方式已在入口弹层选择：?mode=text|voice，缺省（如客户详情跳转）直达文本表单
+const enteredMode = route.query.mode === 'voice' ? 'voice' : 'text'
+const step = ref(enteredMode === 'text' ? 'form' : enteredMode) // form | voice
+const source = ref(enteredMode) // text | voice
 
 // 语音
 const isRecording = ref(false)
@@ -231,13 +197,6 @@ const asrConfidence = ref(0)
 const aiProcessing = ref(false)
 let recordTimer = null
 
-// 手写
-const canvasRef = ref(null)
-const hasInk = ref(false)
-const ctx = ref(null)
-const isPenDown = ref(false)
-const lastPoint = ref(null)
-const inkLines = ref([])
 
 // 表单
 const form = reactive({
@@ -287,13 +246,11 @@ function clearCustomer() {
 
 const pageTitle = computed(() => {
   if (step.value === 'voice') return '语音录入日程'
-  if (step.value === 'handwriting') return '手写录入日程'
   return '新建日程'
 })
 
 const sourceBadgeText = computed(() => {
   if (source.value === 'voice') return 'AI 语音提取'
-  if (source.value === 'handwriting') return 'AI 手写识别'
   return '手动填写'
 })
 const sourceBadgeColor = computed(() => source.value)
@@ -379,82 +336,6 @@ async function processVoice() {
   const result = await extractScheduleApi(asrResult.value)
   aiProcessing.value = false
   applyAiResult(result.data)
-  ensureDefaults()
-  step.value = 'form'
-}
-
-/* ============== 手写 ============== */
-function initCanvas() {
-  if (!canvasRef.value) return
-  const dpr = window.devicePixelRatio || 1
-  const rect = canvasRef.value.getBoundingClientRect()
-  canvasRef.value.width = rect.width * dpr
-  canvasRef.value.height = rect.height * dpr
-  ctx.value = canvasRef.value.getContext('2d')
-  ctx.value.scale(dpr, dpr)
-  ctx.value.lineWidth = 2.5
-  ctx.value.lineCap = 'round'
-  ctx.value.lineJoin = 'round'
-  ctx.value.strokeStyle = '#0F172A'
-}
-
-function getCanvasPos(e) {
-  const rect = canvasRef.value.getBoundingClientRect()
-  return { x: e.clientX - rect.left, y: e.clientY - rect.top }
-}
-
-function onPenDown(e) {
-  isPenDown.value = true
-  lastPoint.value = getCanvasPos(e)
-  // 画一个起点小圆点
-  ctx.value.beginPath()
-  ctx.value.arc(lastPoint.value.x, lastPoint.value.y, 1.2, 0, Math.PI * 2)
-  ctx.value.fillStyle = '#0F172A'
-  ctx.value.fill()
-  hasInk.value = true
-}
-
-function onPenMove(e) {
-  if (!isPenDown.value) return
-  const p = getCanvasPos(e)
-  ctx.value.beginPath()
-  ctx.value.moveTo(lastPoint.value.x, lastPoint.value.y)
-  ctx.value.lineTo(p.x, p.y)
-  ctx.value.stroke()
-  lastPoint.value = p
-}
-
-function onPenUp() {
-  isPenDown.value = false
-  lastPoint.value = null
-}
-
-function clearCanvas() {
-  if (!ctx.value) return
-  const c = canvasRef.value
-  ctx.value.clearRect(0, 0, c.width, c.height)
-  hasInk.value = false
-}
-
-async function processHandwriting() {
-  if (!hasInk.value) {
-    showToast('请先书写')
-    return
-  }
-  aiProcessing.value = true
-  // 模拟手写识别：根据笔画数量生成不同长度文本
-  const samples = [
-    '明天下午 3 点与张总面谈',
-    '上午 10 点给王先生回电沟通贷款方案',
-    '后天下午 2 点提交陈女士的材料补充',
-    '明天上午 9 点整理本周客户匹配报告',
-  ]
-  const recognized = samples[Math.floor(Math.random() * samples.length)]
-  aiProcessing.value = false
-  asrResult.value = recognized
-  asrConfidence.value = 82
-  const ai = await extractScheduleApi(recognized)
-  applyAiResult(ai.data)
   ensureDefaults()
   step.value = 'form'
 }
@@ -593,19 +474,6 @@ onMounted(async () => {
       form.customerName = decodeURIComponent(qName)
     }
   }
-  // 手写录入为初始步骤时初始化画布（watch 只在步骤切换时触发，不含初值）
-  if (step.value === 'handwriting') {
-    await nextTick()
-    initCanvas()
-  }
-})
-
-// 监听 step 变化初始化 canvas
-import { watch } from 'vue'
-watch(step, (val) => {
-  if (val === 'handwriting') {
-    nextTick(() => initCanvas())
-  }
 })
 
 onBeforeUnmount(() => {
@@ -689,56 +557,6 @@ onBeforeUnmount(() => {
   margin-top: 16px;
 }
 
-/* 手写 */
-.handwriting-step { padding: 16px; }
-.hw-card {
-  background: var(--surface-container);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
-  border: none;
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-.hw-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: none;
-}
-.hw-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.tool-btn {
-  background: var(--surface-container-high);
-  border: none;
-  border-radius: 8px;
-  padding: 4px 12px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.hw-canvas {
-  display: block;
-  width: 100%;
-  height: 280px;
-  background: var(--surface-container-lowest);
-  background-image:
-    linear-gradient(rgba(37, 99, 235, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(37, 99, 235, 0.06) 1px, transparent 1px);
-  background-size: 24px 24px;
-  touch-action: none;
-  cursor: crosshair;
-}
-.hw-tip {
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-tertiary);
-  padding: 10px;
-}
-.hw-tip.done { color: var(--color-success); }
-
 /* 表单 */
 .form-step { padding-top: 12px; }
 .form-header { text-align: center; margin-bottom: 12px; }
@@ -751,7 +569,6 @@ onBeforeUnmount(() => {
 }
 .badge-text { background: rgba(37, 99, 235, 0.12); color: var(--color-primary); }
 .badge-voice { background: rgba(6, 182, 212, 0.12); color: #0EA5A5; }
-.badge-handwriting { background: rgba(139, 92, 246, 0.12); color: #7C6CF0; }
 .form-tip { font-size: 12px; color: var(--text-tertiary); margin-top: 6px; }
 .field-label {
   font-size: 14px;
