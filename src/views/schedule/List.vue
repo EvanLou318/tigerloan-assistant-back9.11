@@ -40,7 +40,8 @@
         :class="{ done: item.done }"
         @click="openDetail(item)"
       >
-        <div class="time-block" :class="`prio-${item.priority}`">
+        <div class="prio-bar" :class="`prio-${item.priority}`"></div>
+        <div class="time-block">
           <div class="time-range">{{ formatTime(item.startTime) }}-{{ formatTime(item.endTime) }}</div>
           <div class="prio-tag">{{ item.priority }}</div>
         </div>
@@ -320,25 +321,25 @@ async function onToggleDone(item) {
 .hero-bar {
   margin: 16px 16px 12px;
   padding: 14px 16px;
-  background: var(--surface-container-lowest);
+  background: var(--d-schedule-50);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
   color: var(--text-primary);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
 }
 .hero-text { flex: 1; min-width: 0; }
-.hero-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.2px; }
-.hero-sub { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hero-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.2px; color: var(--d-schedule-800); }
+.hero-sub { font-size: 12px; color: var(--d-schedule-600); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .hero-sub .dot { opacity: 0.6; }
-.hero-sub .overdue { background: var(--danger-container); color: var(--on-danger-container); padding: 1px 8px; border-radius: 4px; }
+.hero-sub .overdue { background: var(--d-alert-500); color: #FFFFFF; padding: 1px 8px; border-radius: 6px; }
 .hero-illu {
   flex-shrink: 0;
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: var(--primary-container);
+  background: var(--d-schedule-100);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -364,16 +365,16 @@ async function onToggleDone(item) {
   transition: all 0.2s;
 }
 .tab-item.active {
-  background: var(--color-primary);
-  color: #FFFFFF;
+  background: var(--d-schedule-50);
+  color: var(--d-schedule-800);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  box-shadow: none;
 }
 .tab-count {
   display: inline-block;
   margin-left: 4px;
   font-size: 11px;
-  background: rgba(255,255,255,0.25);
+  background: var(--d-schedule-100);
   padding: 0 6px;
   border-radius: 8px;
 }
@@ -393,7 +394,9 @@ async function onToggleDone(item) {
 .schedule-card {
   display: flex;
   align-items: stretch;
-  gap: 12px;
+  gap: 10px;
+  padding-left: 0;
+  overflow: hidden;
   background: var(--bg-card);
   border-radius: var(--radius-md);
   padding: 14px;
@@ -414,16 +417,22 @@ async function onToggleDone(item) {
   justify-content: center;
   padding: 6px 4px;
   border-radius: 10px;
-  background: rgba(37, 99, 235, 0.08);
+  background: var(--d-schedule-50);
   position: relative;
 }
-.time-block.prio-P0 { background: var(--danger-container); }
-.time-block.prio-P1 { background: var(--primary-container); }
-.time-block.prio-P2 { background: var(--surface-container-high); }
+.prio-bar {
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+.prio-bar.prio-P0 { background: var(--d-alert-500); }
+.prio-bar.prio-P1 { background: var(--d-todo-500); }
+.prio-bar.prio-P2 { background: var(--d-schedule-600); }
 .time-range {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--d-schedule-800);
   white-space: nowrap;
   letter-spacing: -0.2px;
   line-height: 1.2;
@@ -439,9 +448,7 @@ async function onToggleDone(item) {
   border: none;
   line-height: 1.5;
 }
-.time-block.prio-P0 .prio-tag { color: var(--on-danger-container); }
-.time-block.prio-P1 .prio-tag { color: var(--on-primary-container); }
-.time-block.prio-P2 .prio-tag { color: var(--text-secondary); }
+.prio-tag { color: var(--d-schedule-600); }
 
 .info { flex: 1; min-width: 0; }
 .title {

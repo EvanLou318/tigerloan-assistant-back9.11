@@ -238,14 +238,14 @@ function goMatch() {
   text-align: center;
   padding: 14px 8px;
   border-radius: var(--radius-sm);
-  background: var(--primary-container);
+  background: var(--d-product-50);
 }
 
 .rate-value {
   font-size: 28px;
   font-weight: 700;
   line-height: 1.2;
-  color: var(--on-primary-container);
+  color: var(--d-product-800);
   font-family: 'DIN', 'Roboto', sans-serif;
 }
 
@@ -256,8 +256,7 @@ function goMatch() {
 
 .rate-label {
   font-size: 12px;
-  color: var(--on-primary-container);
-  opacity: 0.75;
+  color: var(--d-product-600);
   margin-top: 4px;
 }
 
@@ -268,19 +267,18 @@ function goMatch() {
   gap: 12px;
   padding: 12px 14px;
   border-radius: var(--radius-sm);
-  background: var(--secondary-container);
+  background: var(--d-product-50);
 }
 
 .amount-label {
   font-size: 12px;
-  color: var(--on-secondary-container);
-  opacity: 0.8;
+  color: var(--d-product-600);
 }
 
 .amount-value {
   font-size: 16px;
   font-weight: 700;
-  color: var(--on-secondary-container);
+  color: var(--d-product-800);
 }
 
 /* 信息区 */

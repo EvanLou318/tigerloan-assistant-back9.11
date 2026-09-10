@@ -176,8 +176,8 @@ function getSourceLabel(source) {
 }
 
 .filter-tab.active {
-  background: var(--primary-container);
-  color: var(--on-primary-container);
+  background: var(--d-product-50);
+  color: var(--d-product-800);
   font-weight: 600;
   border: none;
 }
@@ -235,8 +235,8 @@ function getSourceLabel(source) {
 }
 
 .status-badge.disabled {
-  background: var(--danger-container);
-  color: var(--on-danger-container);
+  background: var(--surface-container-high);
+  color: var(--text-secondary);
 }
 
 .card-body {
@@ -262,8 +262,11 @@ function getSourceLabel(source) {
 }
 
 .info-value.rate {
-  color: var(--color-primary);
+  background: var(--d-product-50);
+  color: var(--d-product-800);
   font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
 }
 
 .card-footer {
@@ -280,7 +283,7 @@ function getSourceLabel(source) {
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--d-product-600);
 }
 
 .card-time {
@@ -297,9 +300,9 @@ function getSourceLabel(source) {
   align-items: center;
   gap: 6px;
   padding: 10px 20px;
-  background: var(--gradient-primary);
+  background: var(--d-product-600);
   border-radius: 24px;
-  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 20px rgba(127, 119, 221, 0.3);
   color: #FFFFFF;
   font-size: 14px;
   font-weight: 600;

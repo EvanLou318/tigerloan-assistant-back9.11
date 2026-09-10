@@ -15,15 +15,15 @@
           <AppIcon name="chevron-right" :size="18" color="var(--text-tertiary)" />
         </div>
         <div class="stats">
-          <div class="stat-cell" @click="$router.push('/products')">
+          <div class="stat-cell tint-product" @click="$router.push('/products')">
             <div class="stat-num">{{ productStore.products.length }}</div>
             <div class="stat-lbl">产品</div>
           </div>
-          <div class="stat-cell" @click="$router.push('/customers')">
+          <div class="stat-cell tint-customer" @click="$router.push('/customers')">
             <div class="stat-num">{{ customerStore.customers.length }}</div>
             <div class="stat-lbl">客户</div>
           </div>
-          <div class="stat-cell" @click="$router.push('/schedules')">
+          <div class="stat-cell tint-todo" @click="$router.push('/schedules')">
             <div class="stat-num">{{ scheduleStore.pendingCount }}</div>
             <div class="stat-lbl">待办日程</div>
           </div>
@@ -35,15 +35,15 @@
         <div class="list-title">账户</div>
         <div class="list-card">
           <div class="list-item" @click="$router.push('/change-password')">
-            <div class="li-ic" style="background: var(--primary-container);">
-              <AppIcon name="lock" :size="20" color="#2563EB" />
+            <div class="li-ic" style="background: var(--d-schedule-50);">
+              <AppIcon name="lock" :size="20" color="var(--d-schedule-600)" />
             </div>
             <div class="li-text">修改密码</div>
             <AppIcon name="chevron-right" :size="14" color="#94A3B8" />
           </div>
           <div class="list-item" @click="showHelp = true">
-            <div class="li-ic" style="background: var(--primary-container);">
-              <AppIcon name="help" :size="20" color="var(--color-primary)" />
+            <div class="li-ic" style="background: var(--d-customer-50);">
+              <AppIcon name="help" :size="20" color="var(--d-customer-600)" />
             </div>
             <div class="li-text">使用帮助</div>
             <AppIcon name="chevron-right" :size="14" color="#94A3B8" />
@@ -56,15 +56,15 @@
         <div class="list-title">系统</div>
         <div class="list-card">
           <div class="list-item" @click="showAbout = true">
-            <div class="li-ic" style="background: var(--primary-container);">
-              <AppIcon name="info" :size="20" color="var(--color-primary)" />
+            <div class="li-ic" style="background: var(--d-product-50);">
+              <AppIcon name="info" :size="20" color="var(--d-product-600)" />
             </div>
             <div class="li-text">关于智贷助手</div>
             <div class="li-extra">v1.0.0</div>
           </div>
           <div class="list-item" @click="showFeedback = true">
-            <div class="li-ic" style="background: var(--primary-container);">
-              <AppIcon name="message" :size="20" color="var(--color-primary)" />
+            <div class="li-ic" style="background: var(--d-todo-50);">
+              <AppIcon name="message" :size="20" color="var(--d-todo-600)" />
             </div>
             <div class="li-text">意见反馈</div>
             <AppIcon name="chevron-right" :size="14" color="#94A3B8" />
@@ -226,13 +226,24 @@ function submitFeedback() {
   flex: 1;
   text-align: center;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  padding: 4px 0;
-  transition: background 0.15s;
+  border-radius: 12px;
+  padding: 10px 4px;
+  margin: 0 4px;
+  transition: transform 0.15s;
 }
-.stat-cell:active { background: var(--surface-container-high); }
+.stat-cell:active { transform: scale(0.97); }
 .stat-num { font-size: 24px; font-weight: 700; font-family: 'DIN', 'Roboto', sans-serif; line-height: 1.2; }
-.stat-lbl { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.stat-lbl { font-size: 12px; margin-top: 2px; }
+
+.stat-cell.tint-product  { background: var(--d-product-50); }
+.stat-cell.tint-customer { background: var(--d-customer-50); }
+.stat-cell.tint-todo     { background: var(--d-todo-50); }
+.tint-product  .stat-num { color: var(--d-product-800); }
+.tint-customer .stat-num { color: var(--d-customer-800); }
+.tint-todo     .stat-num { color: var(--d-todo-800); }
+.tint-product  .stat-lbl { color: var(--d-product-600); }
+.tint-customer .stat-lbl { color: var(--d-customer-600); }
+.tint-todo     .stat-lbl { color: var(--d-todo-600); }
 
 /* ============ 列表区 ============ */
 .list-section { padding: 0 16px 16px; }

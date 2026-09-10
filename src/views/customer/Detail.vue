@@ -48,24 +48,21 @@
         </div>
 
         <div class="header-stats">
-          <div class="stat">
+          <div class="stat tint-customer">
             <span class="stat-label">月收入</span>
             <span class="stat-value">{{ formatMoney(customer.monthlyIncome) }}</span>
           </div>
-          <div class="stat-divider"></div>
-          <div class="stat">
+          <div class="stat tint-schedule">
             <span class="stat-label">总负债</span>
-            <span class="stat-value" :class="{ warn: customer.totalDebt > 100000 }">{{ formatMoney(customer.totalDebt) }}</span>
+            <span class="stat-value">{{ formatMoney(customer.totalDebt) }}</span>
           </div>
-          <div class="stat-divider"></div>
-          <div class="stat">
+          <div class="stat tint-todo">
             <span class="stat-label">负债率</span>
-            <span class="stat-value" :class="getDebtRatioClass">{{ debtRatio }}%</span>
+            <span class="stat-value">{{ debtRatio }}%</span>
           </div>
-          <div class="stat-divider"></div>
-          <div class="stat">
+          <div class="stat" :class="customer.maxOverdueMonths > 0 ? 'tint-alert' : 'tint-neutral'">
             <span class="stat-label">逾期</span>
-            <span class="stat-value" :class="{ warn: customer.maxOverdueMonths > 0 }">{{ customer.maxOverdueMonths }}月</span>
+            <span class="stat-value">{{ customer.maxOverdueMonths }}月</span>
           </div>
         </div>
       </div>
@@ -911,8 +908,8 @@ function showSource(field) {
 }
 
 .customer-avatar.男 {
-  background: var(--primary-container);
-  color: var(--on-primary-container);
+  background: var(--d-customer-50);
+  color: var(--d-customer-800);
   border: none;
 }
 
@@ -950,8 +947,8 @@ function showSource(field) {
 }
 
 .tag.source-tag {
-  background: var(--primary-container);
-  color: var(--on-primary-container);
+  background: var(--d-customer-50);
+  color: var(--d-customer-800);
   border: none;
 }
 
@@ -982,7 +979,7 @@ function showSource(field) {
 .completeness-num {
   font-size: 14px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--d-customer-600);
   font-family: 'DIN', sans-serif;
 }
 
@@ -1022,7 +1019,7 @@ function showSource(field) {
   gap: 12px;
   margin: 0;
   padding: 16px;
-  background: var(--primary-container);
+  background: var(--d-customer-50);
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -1108,20 +1105,39 @@ function showSource(field) {
 }
 
 .header-stats {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
   padding: 12px 0 0;
 }
 
 .stat {
-  flex: 1;
-  text-align: center;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 12px;
 }
+
+.stat.tint-customer { background: var(--d-customer-50); }
+.stat.tint-schedule { background: var(--d-schedule-50); }
+.stat.tint-todo     { background: var(--d-todo-50); }
+.stat.tint-alert    { background: var(--d-alert-50); }
+.stat.tint-neutral  { background: var(--surface-container-low); }
+
+.tint-customer .stat-label { color: var(--d-customer-600); }
+.tint-schedule .stat-label { color: var(--d-schedule-600); }
+.tint-todo     .stat-label { color: var(--d-todo-600); }
+.tint-alert    .stat-label { color: var(--d-alert-800); }
+.tint-neutral  .stat-label { color: var(--text-tertiary); }
+
+.tint-customer .stat-value { color: var(--d-customer-800); }
+.tint-schedule .stat-value { color: var(--d-schedule-800); }
+.tint-todo     .stat-value { color: var(--d-todo-800); }
+.tint-alert    .stat-value { color: var(--d-alert-800); }
+.tint-neutral  .stat-value { color: var(--text-primary); }
 
 .stat-label {
   display: block;
   font-size: 11px;
-  color: var(--text-tertiary);
   margin-bottom: 4px;
 }
 
@@ -1186,8 +1202,8 @@ function showSource(field) {
   align-items: center;
   gap: 2px;
   padding: 4px 12px;
-  background: var(--primary-container);
-  color: var(--on-primary-container);
+  background: var(--d-customer-50);
+  color: var(--d-customer-800);
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
@@ -1233,7 +1249,7 @@ function showSource(field) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-container);
+  background: var(--d-customer-50);
 }
 
 .mat-icon.add {
@@ -1258,7 +1274,7 @@ function showSource(field) {
 
 .mat-confidence {
   font-size: 11px;
-  color: var(--color-primary);
+  color: var(--d-customer-600);
   font-family: 'DIN', sans-serif;
 }
 
@@ -1272,8 +1288,8 @@ function showSource(field) {
   align-items: center;
   gap: 3px;
   padding: 4px 12px;
-  background: var(--primary-container);
-  color: var(--on-primary-container);
+  background: var(--d-customer-50);
+  color: var(--d-customer-800);
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
@@ -1333,7 +1349,7 @@ function showSource(field) {
   width: 64px;
   height: 64px;
   border-radius: 20px;
-  background: var(--primary-container);
+  background: var(--d-customer-50);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1526,8 +1542,8 @@ function showSource(field) {
 }
 
 .ep-chip.active {
-  background: var(--primary-container);
-  color: var(--on-primary-container);
+  background: var(--d-customer-50);
+  color: var(--d-customer-800);
   font-weight: 600;
 }
 
@@ -1575,8 +1591,8 @@ function showSource(field) {
 }
 
 .mtp-chip.active {
-  background: var(--primary-container);
-  color: var(--on-primary-container);
+  background: var(--d-customer-50);
+  color: var(--d-customer-800);
   font-weight: 600;
 }
 
@@ -1664,7 +1680,7 @@ function showSource(field) {
   text-align: center;
   border-radius: 8px;
   padding: 5px 4px;
-  background: var(--primary-container);
+  background: var(--d-customer-50);
 }
 
 .sch-time.prio-P0 { background: var(--danger-container); }
@@ -1731,8 +1747,8 @@ function showSource(field) {
 .adjust-tag {
   font-size: 11px;
   padding: 2px 8px;
-  background: var(--secondary-container);
-  color: var(--on-secondary-container);
+  background: var(--d-customer-50);
+  color: var(--d-customer-800);
   border-radius: 8px;
   border: none;
 }

@@ -31,6 +31,34 @@
   --danger-container: #FEE4E2;
   --on-danger-container: #B42318;
 
+  /* ===== 功能域色板（每域一色：50 底 / 600 图形 / 800 文字） ===== */
+  /* 蓝 · 日程与所有主操作 */
+  --d-schedule-50:  #E6F1FB;
+  --d-schedule-100: #DBEAFE;
+  --d-schedule-600: #378ADD;
+  --d-schedule-700: #1D4ED8;
+  --d-schedule-800: #185FA5;
+  /* 青 · 客户 */
+  --d-customer-50:  #E1F5EE;
+  --d-customer-100: #C9EBDD;
+  --d-customer-600: #1D9E75;
+  --d-customer-800: #0F6E56;
+  /* 紫 · 产品 */
+  --d-product-50:  #EEEDFE;
+  --d-product-100: #CECBF6;
+  --d-product-600: #7F77DD;
+  --d-product-800: #534AB7;
+  /* 琥珀 · 待办与提醒 */
+  --d-todo-50:  #FAEEDA;
+  --d-todo-100: #FAC775;
+  --d-todo-500: #F59E0B;
+  --d-todo-600: #BA7517;
+  --d-todo-800: #854F0B;
+  /* 红 · 逾期与高危 */
+  --d-alert-50:  #FCEBEB;
+  --d-alert-500: #E24B4A;
+  --d-alert-800: #A32D2D;
+
   /* ===== 兼容旧变量名（卡片默认 = 2 级色块；输入 = 2 级色块/白色） ===== */
   --bg-card: var(--surface-container);
   --bg-card-hover: var(--surface-container-high);

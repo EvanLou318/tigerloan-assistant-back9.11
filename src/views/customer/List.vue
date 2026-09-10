@@ -213,8 +213,8 @@ function getMatchStatusText(customer) {
 }
 
 .customer-avatar.男 {
-  background: var(--primary-container);
-  color: var(--on-primary-container);
+  background: var(--d-customer-50);
+  color: var(--d-customer-800);
   border: none;
 }
 
@@ -340,8 +340,8 @@ function getMatchStatusText(customer) {
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: var(--on-primary-container);
-  background: var(--primary-container);
+  color: var(--d-customer-800);
+  background: var(--d-customer-50);
   border-radius: 8px;
   padding: 2px 8px;
   border: none;

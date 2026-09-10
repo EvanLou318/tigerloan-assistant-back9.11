@@ -11,7 +11,7 @@
         :key="item.to"
         :to="item.to"
         class="tab"
-        :class="{ active: isActive(item) }"
+        :class="[`tint-${item.tint}`, { active: isActive(item) }]"
       >
         <span class="tab-icon-wrap">
           <AppIcon :name="item.icon" :size="22" />
@@ -33,10 +33,10 @@ const scheduleStore = useScheduleStore()
 
 // 日程 tab 带未办角标（今日 + 逾期高优提醒）
 const tabs = computed(() => [
-  { to: '/home', label: '首页', icon: 'home', match: ['/home'] },
-  { to: '/products', label: '产品', icon: 'grid', match: ['/products'] },
-  { to: '/customers', label: '客户', icon: 'users', match: ['/customers'] },
-  { to: '/schedules', label: '日程', icon: 'calendar', match: ['/schedules'], badge: scheduleStore.todayCount },
+  { to: '/home', label: '首页', icon: 'home', tint: 'primary', match: ['/home'] },
+  { to: '/products', label: '产品', icon: 'grid', tint: 'product', match: ['/products'] },
+  { to: '/customers', label: '客户', icon: 'users', tint: 'customer', match: ['/customers'] },
+  { to: '/schedules', label: '日程', icon: 'calendar', tint: 'schedule', match: ['/schedules'], badge: scheduleStore.todayCount },
 ])
 
 function isActive(item) {
@@ -93,7 +93,9 @@ function isActive(item) {
   justify-content: center;
   width: 48px;
   height: 30px;
-  transition: transform 0.15s ease;
+  border-radius: 999px;
+  background: transparent;
+  transition: transform 0.15s ease, background 0.2s ease;
 }
 
 .tab:active .tab-icon-wrap {
@@ -103,6 +105,19 @@ function isActive(item) {
 .tab.active {
   color: var(--color-primary);
 }
+
+/* 选中色跟随功能域：产品紫 / 客户青 / 日程蓝 */
+.tab.tint-product.active  { color: var(--d-product-800); }
+.tab.tint-customer.active { color: var(--d-customer-600); }
+.tab.tint-schedule.active { color: var(--d-schedule-700); }
+
+.tab.active .tab-icon-wrap {
+  background: transparent;
+}
+.tab.tint-product.active .tab-icon-wrap  { background: var(--d-product-50); }
+.tab.tint-customer.active .tab-icon-wrap { background: var(--d-customer-50); }
+.tab.tint-schedule.active .tab-icon-wrap { background: var(--d-schedule-50); }
+.tab.tint-primary.active .tab-icon-wrap  { background: var(--primary-container); }
 
 .tab-label {
   font-size: 11px;

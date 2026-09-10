@@ -16,25 +16,21 @@
         </div>
 
         <!-- 数据概览：半压在渐变上的白卡 -->
-        <div class="stats-card animate-float-up">
-          <div class="stat-cell" @click="$router.push('/schedules')">
-            <div class="stat-num accent">{{ scheduleStore.todayCount }}</div>
+        <div class="stats-grid animate-float-up">
+          <div class="stat-cell tint-schedule" @click="$router.push('/schedules')">
+            <div class="stat-num">{{ scheduleStore.todayCount }}</div>
             <div class="stat-lbl">今日日程</div>
           </div>
-          <div class="stat-divider"></div>
-          <div class="stat-cell" @click="$router.push('/customers')">
+          <div class="stat-cell tint-customer" @click="$router.push('/customers')">
             <div class="stat-num">{{ customerStore.customers.length }}</div>
             <div class="stat-lbl">客户</div>
           </div>
-          <div class="stat-divider"></div>
-          <div class="stat-cell" @click="$router.push('/products')">
+          <div class="stat-cell tint-product" @click="$router.push('/products')">
             <div class="stat-num">{{ productStore.products.length }}</div>
             <div class="stat-lbl">产品</div>
           </div>
-          <div class="stat-divider"></div>
-          <div class="stat-cell" @click="$router.push('/schedules')">
-            <div class="stat-num warn" v-if="scheduleStore.pendingCount > 0">{{ scheduleStore.pendingCount }}</div>
-            <div class="stat-num" v-else>0</div>
+          <div class="stat-cell tint-todo" @click="$router.push('/schedules')">
+            <div class="stat-num">{{ scheduleStore.pendingCount }}</div>
             <div class="stat-lbl">待办</div>
           </div>
         </div>
@@ -53,7 +49,8 @@
             class="schedule-row"
             @click="$router.push('/schedules')"
           >
-            <div class="time-col" :class="`prio-${item.priority}`">
+            <div class="prio-bar" :class="`prio-${item.priority}`"></div>
+            <div class="time-col">
               <div class="t-time">{{ formatTime(item.startTime) }}</div>
               <div class="t-prio">{{ item.priority }}</div>
             </div>
@@ -87,8 +84,8 @@
         </div>
         <div class="quick-grid">
           <div class="quick-item" v-for="item in quickActions" :key="item.label" @click="item.action">
-            <div class="quick-icon">
-              <AppIcon :name="item.icon" :size="22" color="var(--color-primary)" />
+            <div class="quick-icon" :class="`tint-${item.tint}`">
+              <AppIcon :name="item.icon" :size="22" :color="item.iconColor" />
             </div>
             <div class="quick-label">{{ item.label }}</div>
           </div>
@@ -145,10 +142,10 @@ const todayText = new Date().toLocaleDateString('zh-CN', { month: 'long', day: '
 const todayPreview = computed(() => scheduleStore.todaySchedules.slice(0, 3))
 
 const quickActions = [
-  { label: 'AI 助理', icon: 'sparkles', action: () => router.push('/assistant') },
-  { label: '新建日程', icon: 'calendar-plus', action: () => { showScheduleSheet.value = true } },
-  { label: '录入产品', icon: 'file-plus', action: () => { showMethodSheet.value = true } },
-  { label: '新建客户', icon: 'user-plus', action: () => router.push('/customers/create') },
+  { label: 'AI 助理', icon: 'sparkles', tint: 'todo', iconColor: 'var(--d-todo-600)', action: () => router.push('/assistant') },
+  { label: '新建日程', icon: 'calendar-plus', tint: 'schedule', iconColor: 'var(--d-schedule-600)', action: () => { showScheduleSheet.value = true } },
+  { label: '录入产品', icon: 'file-plus', tint: 'product', iconColor: 'var(--d-product-600)', action: () => { showMethodSheet.value = true } },
+  { label: '新建客户', icon: 'user-plus', tint: 'customer', iconColor: 'var(--d-customer-600)', action: () => router.push('/customers/create') },
 ]
 
 function formatTime(iso) {
@@ -219,46 +216,48 @@ function formatTime(iso) {
 .avatar-entry:active { transform: scale(0.92); }
 
 /* 数据概览：白卡（与内容同层，靠留白分隔） */
-.stats-card {
-  display: flex;
-  align-items: center;
-  background: var(--surface-container-lowest);
-  border-radius: var(--radius-md);
-  padding: 14px 8px;
-  box-shadow: var(--shadow-card);
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
 }
 
 .stat-cell {
-  flex: 1;
-  text-align: center;
+  text-align: left;
   cursor: pointer;
-  padding: 2px 0;
-  border-radius: var(--radius-sm);
-  transition: background 0.15s;
+  padding: 12px 14px;
+  border-radius: 14px;
+  transition: transform 0.15s;
 }
-.stat-cell:active { background: var(--surface-container-high); }
+.stat-cell:active { transform: scale(0.97); }
+
+.stat-cell.tint-schedule { background: var(--d-schedule-50); }
+.stat-cell.tint-customer { background: var(--d-customer-50); }
+.stat-cell.tint-product  { background: var(--d-product-50); }
+.stat-cell.tint-todo     { background: var(--d-todo-50); }
 
 .stat-num {
   font-size: 24px;
   font-weight: 700;
-  color: var(--text-primary);
   font-family: 'DIN', 'Roboto', sans-serif;
-  line-height: 1.25;
+  line-height: 1.2;
 }
-.stat-num.accent { color: var(--color-primary); }
-.stat-num.warn { color: var(--color-warning); }
+.tint-schedule .stat-num { color: var(--d-schedule-800); }
+.tint-customer .stat-num { color: var(--d-customer-800); }
+.tint-product  .stat-num { color: var(--d-product-800); }
+.tint-todo     .stat-num { color: var(--d-todo-800); }
 
 .stat-lbl {
   font-size: 12px;
-  color: var(--text-tertiary);
   margin-top: 2px;
 }
-
-.stat-divider {
-  width: 1px;
-  height: 28px;
-  background: var(--surface-container-high);
-}
+.tint-schedule .stat-lbl { color: var(--d-schedule-600); }
+.tint-customer .stat-lbl { color: var(--d-customer-600); }
+.tint-product  .stat-lbl { color: var(--d-product-600); }
+.tint-todo     .stat-lbl { color: var(--d-todo-600); }
 
 /* ============ Section ============ */
 .section { padding: 16px 16px 0; }
@@ -289,19 +288,26 @@ function formatTime(iso) {
 }
 .schedule-row:active { transform: scale(0.98); background: var(--bg-card-hover); }
 
+.prio-bar {
+  width: 3px;
+  height: 34px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.prio-bar.prio-P0 { background: var(--d-alert-500); }
+.prio-bar.prio-P1 { background: var(--d-todo-500); }
+.prio-bar.prio-P2 { background: var(--d-schedule-600); }
+
 .time-col {
   width: 56px;
   flex-shrink: 0;
   text-align: center;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 6px 4px;
-  background: var(--primary-container);
+  background: var(--d-schedule-50);
 }
-.time-col.prio-P0 { background: var(--danger-container); }
-.time-col.prio-P1 { background: var(--warning-container); }
-.time-col.prio-P2 { background: var(--surface-container-high); }
-.t-time { font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.t-prio { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+.t-time { font-size: 14px; font-weight: 700; color: var(--d-schedule-800); }
+.t-prio { font-size: 11px; color: var(--d-schedule-600); margin-top: 1px; }
 .info-col { flex: 1; min-width: 0; }
 .i-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
 .i-meta { font-size: 11px; color: var(--text-tertiary); display: flex; flex-wrap: wrap; gap: 8px; }
@@ -341,7 +347,6 @@ function formatTime(iso) {
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: var(--primary-container);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -349,6 +354,10 @@ function formatTime(iso) {
   box-shadow: none;
   transition: transform 0.15s ease;
 }
+.quick-icon.tint-schedule { background: var(--d-schedule-100); }
+.quick-icon.tint-customer { background: var(--d-customer-100); }
+.quick-icon.tint-product  { background: var(--d-product-100); }
+.quick-icon.tint-todo     { background: var(--d-todo-100); }
 .quick-label { font-size: 12px; color: var(--text-secondary); }
 
 /* 入场动效：依次浮起 */
