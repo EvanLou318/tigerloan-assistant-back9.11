@@ -4,7 +4,7 @@ import json, time, subprocess, websocket, urllib.request, os, base64
 
 CHROME = r"C:/Program Files/Google/Chrome/Application/chrome.exe"
 PORT = 9291
-BASE = "http://127.0.0.1:3007/"
+BASE = "https://91fbcd73077147039da3de0cbcf2cc12.app.workbuddy.link/"
 OUT = r"C:/Users/madta/WorkBuddy/2026-08-19-12-24-26/loan-assistant/scripts/e2e_shots/round5"
 os.makedirs(OUT, exist_ok=True)
 
