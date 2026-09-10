@@ -559,6 +559,10 @@ onBeforeUnmount(() => {
 
 /* 表单 */
 .form-step { padding-top: 12px; }
+/* 全局样式把 inset 卡片 margin 归零，这里恢复统一的 16px 左右边距 */
+.form-step :deep(.van-cell-group--inset) {
+  margin: 0 16px !important;
+}
 .form-header { text-align: center; margin-bottom: 12px; }
 .badge {
   display: inline-block;

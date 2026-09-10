@@ -44,25 +44,17 @@
         <div class="time-col">
           <div class="t-start">{{ formatTime(item.startTime) }}</div>
           <div class="t-end">{{ formatTime(item.endTime) }}</div>
-          <div class="t-date" v-if="!isToday(item)">{{ formatDay(item.startTime) }}</div>
+          <div class="t-date" :class="{ today: isToday(item) }">{{ formatDay(item.startTime) }}</div>
         </div>
         <div class="info">
           <div class="title">
             <span class="type-icon" v-html="typeIcon(item.type)"></span>
             <span class="title-text">{{ item.title }}</span>
+            <span v-if="isOverdue(item)" class="overdue-tag">已逾期</span>
             <span class="prio-chip" :class="`prio-chip-${item.priority}`">{{ prioText(item.priority) }}</span>
           </div>
           <div class="meta">
-            <span v-if="item.location" class="meta-item">
-              <AppIcon name="map-pin" :size="12" /> {{ item.location }}
-            </span>
-            <span v-if="item.customerName" class="meta-item">
-              <AppIcon name="user" :size="12" /> {{ item.customerName }}
-            </span>
-            <span v-if="item.reminderTime" class="meta-item">
-              <AppIcon name="bell" :size="12" /> 提前 {{ getReminderOffset(item.reminderTime, item.startTime) }}
-            </span>
-            <span v-if="isOverdue(item)" class="meta-item overdue-tag">已逾期</span>
+            <span class="meta-text">{{ metaText(item) }}</span>
           </div>
         </div>
       </div>
@@ -295,6 +287,17 @@ function prioText(p) {
   return p === 'P0' ? '紧急' : p === 'P1' ? '普通' : '低优'
 }
 
+// 卡片元信息行：固定单行「客户 · 地点 · 提前提醒」；
+// 三个字段都为空时回退展示类型，保证每张卡片都是同样的两行结构、高度一致
+function metaText(item) {
+  const parts = []
+  if (item.customerName) parts.push(item.customerName)
+  if (item.location) parts.push(item.location)
+  if (item.reminderTime) parts.push(`提前 ${getReminderOffset(item.reminderTime, item.startTime)}`)
+  if (parts.length === 0) parts.push(typeLabel[item.type] || '待办')
+  return parts.join(' · ')
+}
+
 function formatFullDate(iso) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -465,6 +468,11 @@ function typeIcon(type) {
   padding: 1px 5px;
   white-space: nowrap;
 }
+/* 今日徽标用中性色，非今日用蓝色调；始终渲染保证时间列结构一致 */
+.t-date.today {
+  background: var(--surface-container-high);
+  color: var(--text-secondary);
+}
 
 .info {
   flex: 1;
@@ -504,15 +512,23 @@ function typeIcon(type) {
 .prio-chip-P1 { background: var(--d-todo-50); color: var(--d-todo-800); }
 .prio-chip-P2 { background: var(--surface-container-high); color: var(--text-secondary); }
 .type-icon { display: inline-flex; flex-shrink: 0; }
+/* 元信息固定单行：超出省略，避免字段多时换行导致卡片高度参差 */
 .meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
   font-size: 11px;
   color: var(--text-tertiary);
+  line-height: 1.4;
 }
-.meta-item { display: inline-flex; align-items: center; gap: 2px; }
+.meta-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 逾期徽标：固定在标题行右侧（优先级 chip 左侧），位置统一 */
 .overdue-tag {
+  flex-shrink: 0;
   color: var(--color-danger);
   background: var(--danger-container);
   padding: 1px 6px;
