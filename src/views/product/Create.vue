@@ -162,16 +162,26 @@
 
       <van-form @submit="onSave">
         <van-cell-group inset>
-          <van-field v-model="formData.productName" label="产品名称" placeholder="请输入" :rules="[{ required: true, message: '请输入产品名称' }]">
-            <template #right-icon>
-              <VoiceMic label="产品名称" sample="公积金信用贷" @confirm="formData.productName = $event" />
-            </template>
-          </van-field>
-          <van-field v-model="formData.institution" label="所属机构" placeholder="请输入" :rules="[{ required: true, message: '请输入所属机构' }]">
-            <template #right-icon>
-              <VoiceMic label="所属机构" sample="招商银行" @confirm="formData.institution = $event" />
-            </template>
-          </van-field>
+          <van-field v-model="formData.productName" label="产品名称" placeholder="请输入产品名称" :rules="[{ required: true, message: '请输入产品名称' }]" />
+
+          <!-- 所属机构：手动输入 + 历史机构联想 -->
+          <van-field
+            v-model="formData.institution"
+            label="所属机构"
+            placeholder="请输入所属机构"
+            :rules="[{ required: true, message: '请输入所属机构' }]"
+            @focus="institutionFocused = true"
+            @blur="onInstitutionBlur"
+          />
+          <div v-if="institutionFocused && institutionSuggestions.length" class="suggest-bar">
+            <span class="suggest-label">历史机构</span>
+            <span
+              v-for="ins in institutionSuggestions"
+              :key="ins"
+              class="suggest-chip"
+              @mousedown.prevent="pickInstitution(ins)"
+            >{{ ins }}</span>
+          </div>
           <van-field v-model="formData.minRate" label="最低年利率" type="number" placeholder="如 3.45" :rules="[{ required: true, message: '请输入最低年利率' }]">
             <template #button><span style="color: var(--text-tertiary);">%</span></template>
           </van-field>
@@ -184,16 +194,51 @@
           <van-field v-model="formData.maxAmount" label="最高额度" type="digit" placeholder="如 30" :rules="[{ required: true, message: '请输入最高额度' }]">
             <template #button><span style="color: var(--text-tertiary);">万</span></template>
           </van-field>
-          <van-field v-model="formData.loanTerm" label="贷款期限" placeholder="如 12-36个月" :rules="[{ required: true, message: '请输入贷款期限' }]">
-            <template #right-icon>
-              <VoiceMic label="贷款期限" sample="12到36个月" @confirm="formData.loanTerm = $event" />
-            </template>
-          </van-field>
-          <van-field v-model="formData.repaymentMethod" label="还款方式" placeholder="如 等额本息" :rules="[{ required: true, message: '请输入还款方式' }]">
-            <template #right-icon>
-              <VoiceMic label="还款方式" sample="等额本息" @confirm="formData.repaymentMethod = $event" />
-            </template>
-          </van-field>
+          <!-- 贷款期限：最短 / 最长 月份分别填写 -->
+          <div class="range-row">
+            <van-field
+              v-model="formData.minTerm"
+              class="range-field"
+              label-width="60"
+              label="最短"
+              type="digit"
+              placeholder="如 12"
+              :rules="[{ required: true, message: '请输入最短期限' }]"
+            >
+              <template #button><span class="unit">个月</span></template>
+            </van-field>
+            <span class="range-sep">-</span>
+            <van-field
+              v-model="formData.maxTerm"
+              class="range-field"
+              label-width="60"
+              label="最长"
+              type="digit"
+              placeholder="如 36"
+              :rules="[{ required: true, message: '请输入最长期限' }]"
+            >
+              <template #button><span class="unit">个月</span></template>
+            </van-field>
+          </div>
+
+          <!-- 还款方式：常用方式枚举选择 -->
+          <van-field
+            v-model="formData.repaymentMethod"
+            label="还款方式"
+            placeholder="请选择还款方式"
+            readonly
+            is-link
+            :rules="[{ required: true, message: '请选择还款方式' }]"
+            @click="showRepaymentSheet = true"
+          />
+          <van-action-sheet
+            v-model:show="showRepaymentSheet"
+            title="选择还款方式"
+            :actions="repaymentActions"
+            cancel-text="取消"
+            close-on-click-action
+            @select="onPickRepayment"
+          />
         </van-cell-group>
 
         <div style="margin: 16px;">
@@ -240,6 +285,39 @@ const isEditMode = !!editId
 // select, voice, image, pdf, processing, preview, loading（编辑模式加载中）
 // 编辑模式直接进 loading，避免闪现「选择录入方式」
 const step = ref(isEditMode ? 'loading' : 'select')
+
+// 常用还款方式枚举（保存为文本，兼容历史数据）
+const REPAYMENT_OPTIONS = [
+  '等额本息',
+  '等额本金',
+  '先息后本',
+  '到期一次性还本付息',
+  '按期付息、到期还本',
+  '随借随还',
+]
+const repaymentActions = REPAYMENT_OPTIONS.map((name) => ({ name }))
+const showRepaymentSheet = ref(false)
+function onPickRepayment(action) {
+  formData.repaymentMethod = action.name
+}
+
+// 所属机构历史联想
+const institutionFocused = ref(false)
+const institutionSuggestions = computed(() => {
+  const kw = formData.institution.trim()
+  const all = [...new Set(store.products.map((p) => p.institution).filter(Boolean))]
+  const matched = kw ? all.filter((i) => i.includes(kw) && i !== kw) : all
+  return matched.slice(0, 6)
+})
+function pickInstitution(ins) {
+  formData.institution = ins
+  institutionFocused.value = false
+}
+function onInstitutionBlur() {
+  // 延迟关闭，保证 chip 的 mousedown 先触发
+  setTimeout(() => { institutionFocused.value = false }, 200)
+}
+
 const method = ref('')
 const isRecording = ref(false)
 
@@ -271,15 +349,33 @@ const formData = reactive({
   minAmount: '',
   maxAmount: '',
   loanTerm: '',
+  minTerm: '',
+  maxTerm: '',
   repaymentMethod: '',
   conditions: '',
   source: 'text',
 })
 
-// 编辑模式：先从后端拉取产品数据再进入表单
-if (isEditMode) {
-  onMounted(async () => {
-    await store.loadProducts(true)
+// 贷款期限输入（min/max 月份）与存储字符串互转
+function parseLoanTerm(text) {
+  const s = String(text || '')
+  const range = s.match(/(\d+)\s*(?:[-~—]|到|至)\s*(\d+)/)
+  if (range) return { min: range[1], max: range[2] }
+  const single = s.match(/(\d+)/)
+  return { min: single ? single[1] : '', max: '' }
+}
+function buildLoanTerm() {
+  const min = String(formData.minTerm || '').trim()
+  const max = String(formData.maxTerm || '').trim()
+  if (min && max) return `${min}-${max}个月`
+  if (min) return `${min}个月`
+  return ''
+}
+
+// 录入/编辑页都需要产品列表：编辑用于回填，录入用于机构联想
+onMounted(async () => {
+  await store.loadProducts(true)
+  if (isEditMode) {
     const product = store.getProductById(editId)
     if (product) {
       fillFormData(product)
@@ -289,8 +385,8 @@ if (isEditMode) {
       showToast('产品不存在或已被删除')
       router.back()
     }
-  })
-}
+  }
+})
 
 // 列表页底部弹框直达：携带 method 参数跳过方式选择步骤
 const presetMethod = route.query.method
@@ -312,6 +408,8 @@ function selectMethod(m) {
 function resetMethod() {
   step.value = 'select'
   method.value = ''
+  formData.minTerm = ''
+  formData.maxTerm = ''
   isRecording.value = false
   asrResult.value = null
   ocrResult.value = null
@@ -405,6 +503,10 @@ function fillFormData(data) {
     repaymentMethod: data.repaymentMethod || '',
     conditions: data.conditions || '',
   })
+  // 期限回填到「最短/最长」两个输入框
+  const { min, max } = parseLoanTerm(data.loanTerm)
+  formData.minTerm = min
+  formData.maxTerm = max
 }
 
 async function onSave() {
@@ -418,11 +520,17 @@ async function onSave() {
     showToast('最低额度不能大于最高额度')
     return
   }
+  // 校验期限区间（最短/最长月数）
+  if (formData.minTerm && formData.maxTerm && Number(formData.minTerm) > Number(formData.maxTerm)) {
+    showToast('最短期限不能大于最长期限')
+    return
+  }
 
   saving.value = true
   try {
     const payload = {
       ...formData,
+      loanTerm: buildLoanTerm(),
       minRate: Number(formData.minRate),
       maxRate: Number(formData.maxRate),
       minAmount: Number(formData.minAmount),
@@ -455,6 +563,59 @@ async function onSave() {
   align-items: center;
   justify-content: center;
   min-height: 240px;
+}
+
+/* 所属机构历史联想 */
+.suggest-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 16px 12px;
+  background: var(--surface-container);
+}
+
+.suggest-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-right: 2px;
+}
+
+.suggest-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-container-high);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.suggest-chip:active {
+  background: var(--primary-container);
+  color: var(--color-primary);
+}
+
+/* 贷款期限区间输入 */
+.range-row {
+  display: flex;
+  align-items: center;
+  background: var(--surface-container);
+}
+
+.range-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.range-sep {
+  color: var(--text-tertiary);
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.unit {
+  color: var(--text-tertiary);
+  font-size: 13px;
 }
 
 .select-header {
