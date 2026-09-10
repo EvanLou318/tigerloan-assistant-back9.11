@@ -45,12 +45,12 @@
           <div class="t-start">{{ formatTime(item.startTime) }}</div>
           <div class="t-end">{{ formatTime(item.endTime) }}</div>
           <div class="t-date" :class="{ today: isToday(item) }">{{ formatDay(item.startTime) }}</div>
+          <div v-if="isOverdue(item)" class="t-overdue">逾期</div>
         </div>
         <div class="info">
           <div class="title">
             <span class="type-icon" v-html="typeIcon(item.type)"></span>
             <span class="title-text">{{ item.title }}</span>
-            <span v-if="isOverdue(item)" class="overdue-tag">已逾期</span>
             <span class="prio-chip" :class="`prio-chip-${item.priority}`">{{ prioText(item.priority) }}</span>
           </div>
           <div class="meta">
@@ -437,7 +437,7 @@ function typeIcon(type) {
 /* 时间列：开始时间突出、结束时间次级，不再用色块挤压 */
 .time-col {
   flex-shrink: 0;
-  width: 58px;
+  width: 62px;
   padding: 2px 0 2px 10px;
   display: flex;
   flex-direction: column;
@@ -472,6 +472,18 @@ function typeIcon(type) {
 .t-date.today {
   background: var(--surface-container-high);
   color: var(--text-secondary);
+}
+/* 逾期标记：贴着时间列，红色小字，与日期徽标同格式 */
+.t-overdue {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-danger);
+  background: var(--danger-container);
+  border-radius: 5px;
+  padding: 1px 5px;
+  line-height: 1.45;
+  white-space: nowrap;
 }
 
 .info {
@@ -526,16 +538,6 @@ function typeIcon(type) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* 逾期徽标：固定在标题行右侧（优先级 chip 左侧），位置统一 */
-.overdue-tag {
-  flex-shrink: 0;
-  color: var(--color-danger);
-  background: var(--danger-container);
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
 /* 空状态 */
 .empty-ic-wrap {
   width: 72px;
