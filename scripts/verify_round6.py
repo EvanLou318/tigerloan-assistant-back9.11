@@ -4,13 +4,13 @@ import json, time, subprocess, websocket, urllib.request, os, base64
 
 CHROME = r"C:/Program Files/Google/Chrome/Application/chrome.exe"
 PORT = 9292
-BASE = "http://127.0.0.1:3007/"
+BASE = "https://91fbcd73077147039da3de0cbcf2cc12.app.workbuddy.link/"
 OUT = r"C:/Users/madta/WorkBuddy/2026-08-19-12-24-26/loan-assistant/scripts/e2e_shots/round6"
 os.makedirs(OUT, exist_ok=True)
 
 def curl_login():
     raw = subprocess.run([
-        "curl", "-s", "--noproxy", "*", "-m", "25", "-X", "POST", BASE + "api/auth/login",
+        "curl", "-s", "-m", "25", "-X", "POST", BASE + "api/auth/login",
         "-H", "Content-Type: application/json",
         "-d", json.dumps({"phone": "13800138000", "password": "abc123"}),
     ], capture_output=True, text=True).stdout
@@ -21,7 +21,7 @@ TOKEN, USER = login["data"]["token"], json.dumps(login["data"]["user"], ensure_a
 
 # 取一个客户 id（用于进入推演页）
 cust = subprocess.run([
-    "curl", "-s", "--noproxy", "*", "-m", "25", BASE + "api/customers",
+    "curl", "-s", "-m", "25", BASE + "api/customers",
     "-H", f"X-Auth-Token: {TOKEN}",
 ], capture_output=True, text=True).stdout
 cust_data = json.loads(cust)
