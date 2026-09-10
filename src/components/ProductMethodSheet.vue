@@ -11,7 +11,7 @@
     <template #action="{ action }">
       <div class="method-option">
         <div class="method-icon">
-          <AppIcon :name="action.icon" :size="22" color="var(--color-primary)" />
+          <AppIcon :name="action.appIcon" :size="22" color="var(--color-primary)" />
         </div>
         <div class="method-info">
           <div class="method-name">{{ action.name }}</div>
@@ -44,10 +44,10 @@ watch(
 watch(visible, (val) => emit('update:show', val))
 
 const methods = [
-  { name: '文本录入', desc: '手动填写表单', method: 'text', icon: 'edit' },
-  { name: '语音录入', desc: '口述产品信息，AI 自动识别', method: 'voice', icon: 'mic' },
-  { name: '图片录入', desc: '上传产品海报/宣传单照片', method: 'image', icon: 'image' },
-  { name: 'PDF录入', desc: '上传产品说明文档', method: 'pdf', icon: 'file-text' },
+  { name: '文本录入', desc: '手动填写表单', method: 'text', appIcon: 'edit' },
+  { name: '语音录入', desc: '口述产品信息，AI 自动识别', method: 'voice', appIcon: 'mic' },
+  { name: '图片录入', desc: '上传产品海报/宣传单照片', method: 'image', appIcon: 'image' },
+  { name: 'PDF录入', desc: '上传产品说明文档', method: 'pdf', appIcon: 'file-text' },
 ]
 
 function onSelect(action) {

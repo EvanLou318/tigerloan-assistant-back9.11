@@ -17,11 +17,14 @@
           </div>
           <div class="header-info">
             <div class="header-name">{{ customer.name }}</div>
-            <div class="header-tags">
-              <span class="tag">{{ customer.age || '--' }}岁</span>
-              <span class="tag">{{ customer.gender }}</span>
-              <span class="tag">{{ customer.maritalStatus || '未填写' }}</span>
-              <span class="tag source-tag">{{ sourceLabel }}</span>
+            <div class="header-meta">
+              <span>{{ customer.age || '--' }}岁</span>
+              <i>·</i>
+              <span>{{ customer.gender }}</span>
+              <i>·</i>
+              <span>{{ customer.maritalStatus || '未填写' }}</span>
+              <i>·</i>
+              <span>{{ sourceLabel }}</span>
             </div>
           </div>
           <div class="risk-badge" :class="riskLevel">
@@ -32,37 +35,34 @@
         <!-- 资料完整度 -->
         <div class="completeness-bar">
           <div class="completeness-top">
-            <span class="completeness-label">
-              <AppIcon name="list" :size="13" color="#2563EB" />
-              资料完整度
-            </span>
+            <span class="completeness-label">资料完整度</span>
             <span class="completeness-num">{{ completeness }}%</span>
           </div>
           <div class="completeness-track">
             <div class="completeness-fill" :style="{ width: completeness + '%' }"></div>
           </div>
           <p v-if="missingMaterials.length > 0" class="missing-tip" @click="$router.push(`/customers/${customer.id}/materials`)">
-            待补充：{{ missingMaterials.join('、') }} <AppIcon name="chevron-right" :size="10" />
+            待补充：{{ missingMaterials.join('、') }}
           </p>
           <p v-else class="missing-tip done">资料已齐全，可以放心匹配产品</p>
         </div>
 
         <div class="header-stats">
-          <div class="stat tint-customer">
+          <div class="stat">
             <span class="stat-label">月收入</span>
             <span class="stat-value">{{ formatMoney(customer.monthlyIncome) }}</span>
           </div>
-          <div class="stat tint-schedule">
+          <div class="stat">
             <span class="stat-label">总负债</span>
             <span class="stat-value">{{ formatMoney(customer.totalDebt) }}</span>
           </div>
-          <div class="stat tint-todo">
+          <div class="stat">
             <span class="stat-label">负债率</span>
-            <span class="stat-value">{{ debtRatio }}%</span>
+            <span class="stat-value" :class="debtRatio > 50 ? 'is-warn' : ''">{{ debtRatio }}%</span>
           </div>
-          <div class="stat" :class="customer.maxOverdueMonths > 0 ? 'tint-alert' : 'tint-neutral'">
+          <div class="stat">
             <span class="stat-label">逾期</span>
-            <span class="stat-value">{{ customer.maxOverdueMonths }}月</span>
+            <span class="stat-value" :class="customer.maxOverdueMonths > 0 ? 'is-alert' : ''">{{ customer.maxOverdueMonths }}月</span>
           </div>
         </div>
       </div>
@@ -70,7 +70,7 @@
       <!-- 补充资料入口 -->
       <div class="material-entry" @click="$router.push(`/customers/${customer.id}/materials`)">
         <div class="entry-icon">
-          <AppIcon name="plus" :size="18" color="#2563EB" />
+          <AppIcon name="plus" :size="18" color="#475569" />
         </div>
         <div class="entry-text">
           <div class="entry-title">补充客户资料</div>
@@ -88,7 +88,7 @@
         <div class="material-list">
           <div class="material-item" v-for="mat in customer.materials" :key="mat.id" @click="openMaterial(mat)">
             <div class="mat-icon">
-              <AppIcon name="file-text" :size="16" color="#2563EB" />
+              <AppIcon name="file-text" :size="16" color="#64748B" />
             </div>
             <div class="mat-info">
               <div class="mat-name">{{ mat.type }}</div>
@@ -115,9 +115,7 @@
           <div class="info-row" v-for="field in group.fields" :key="field.key">
             <span class="info-label">{{ field.label }}</span>
             <span class="info-value" :class="field.class">{{ field.value }}</span>
-            <span class="info-source" v-if="field.source" @click="showSource(field)">
-              <AppIcon name="search" :size="12" color="#0EA5A5" />
-            </span>
+            <span class="info-source" v-if="field.source" @click.stop="showSource(field)">溯源</span>
           </div>
         </div>
       </div>
@@ -138,9 +136,9 @@
         </div>
         <div class="sch-list" v-if="upcomingSchedules.length > 0">
           <div class="sch-item" v-for="sch in upcomingSchedules" :key="sch.id" @click="$router.push('/schedules')">
-            <div class="sch-time" :class="`prio-${sch.priority}`">
+            <div class="sch-time">
               <div class="sch-clock">{{ formatSchTime(sch.startTime) }}</div>
-              <div class="sch-prio">{{ sch.priority }}</div>
+              <div class="sch-prio" :class="`prio-${sch.priority}`">{{ sch.priority }}</div>
             </div>
             <div class="sch-info">
               <div class="sch-title">{{ sch.title }}</div>
@@ -907,15 +905,10 @@ function showSource(field) {
   flex-shrink: 0;
 }
 
-.customer-avatar.男 {
-  background: var(--d-customer-50);
-  color: var(--d-customer-800);
-  border: none;
-}
-
-.customer-avatar.女 {
-  background: var(--danger-container);
-  color: var(--on-danger-container);
+/* 头像统一中性底，避免性别配色带来的花哨感 */
+.customer-avatar {
+  background: var(--surface-container-high);
+  color: var(--text-primary);
   border: none;
 }
 
@@ -931,34 +924,28 @@ function showSource(field) {
   margin-bottom: 6px;
 }
 
-.header-tags {
+/* 元信息一行纯文本，用「·」分隔，不再用彩色标签 */
+.header-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
   display: flex;
-  gap: 6px;
+  align-items: center;
   flex-wrap: wrap;
+  gap: 4px;
 }
 
-.tag {
-  font-size: 11px;
-  padding: 2px 8px;
-  background: var(--surface-container-high);
-  color: var(--text-secondary);
-  border-radius: 8px;
-  border: none;
-}
-
-.tag.source-tag {
-  background: var(--d-customer-50);
-  color: var(--d-customer-800);
-  border: none;
+.header-meta i {
+  font-style: normal;
+  color: #CBD5E1;
 }
 
 /* 资料完整度 */
 .completeness-bar {
-  background: var(--bg-input);
+  background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  margin-bottom: 16px;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 14px;
 }
 
 .completeness-top {
@@ -971,31 +958,27 @@ function showSource(field) {
 .completeness-label {
   font-size: 12px;
   color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .completeness-num {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--d-customer-600);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
   font-family: 'DIN', sans-serif;
 }
 
 .completeness-track {
-  height: 6px;
-  background: var(--bg-base);
-  border-radius: 3px;
+  height: 4px;
+  background: var(--surface-container-high);
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .completeness-fill {
   height: 100%;
-  background: var(--gradient-primary);
-  border-radius: 3px;
+  background: var(--color-primary);
+  border-radius: 2px;
   transition: width 0.5s ease;
-  box-shadow: 0 0 8px rgba(37, 99, 235, 0.5);
 }
 
 .missing-tip {
@@ -1013,13 +996,15 @@ function showSource(field) {
 }
 
 /* 补充资料入口 */
+/* 补充资料：白卡行式入口，去掉整块彩色底 */
 .material-entry {
   display: flex;
   align-items: center;
   gap: 12px;
   margin: 0;
-  padding: 16px;
-  background: var(--d-customer-50);
+  padding: 14px 16px;
+  background: var(--surface-container);
+  box-shadow: var(--shadow-card);
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -1031,10 +1016,10 @@ function showSource(field) {
 }
 
 .entry-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: rgba(37, 99, 235, 0.12);
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--surface-container-high);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1104,49 +1089,52 @@ function showSource(field) {
   border: none;
 }
 
+/* 关键指标：一行四列 + 细分隔线，仅异常值上色 */
 .header-stats {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  padding: 12px 0 0;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--surface-container-high);
 }
 
 .stat {
   text-align: left;
-  padding: 9px 12px;
-  border-radius: 12px;
+  padding: 0 10px;
+  border-radius: 0;
+  position: relative;
 }
 
-.stat.tint-customer { background: var(--d-customer-50); }
-.stat.tint-schedule { background: var(--d-schedule-50); }
-.stat.tint-todo     { background: var(--d-todo-50); }
-.stat.tint-alert    { background: var(--d-alert-50); }
-.stat.tint-neutral  { background: var(--surface-container-low); }
+.stat + .stat::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 24px;
+  background: var(--surface-container-high);
+}
 
-.tint-customer .stat-label { color: var(--d-customer-600); }
-.tint-schedule .stat-label { color: var(--d-schedule-600); }
-.tint-todo     .stat-label { color: var(--d-todo-600); }
-.tint-alert    .stat-label { color: var(--d-alert-800); }
-.tint-neutral  .stat-label { color: var(--text-tertiary); }
-
-.tint-customer .stat-value { color: var(--d-customer-800); }
-.tint-schedule .stat-value { color: var(--d-schedule-800); }
-.tint-todo     .stat-value { color: var(--d-todo-800); }
-.tint-alert    .stat-value { color: var(--d-alert-800); }
-.tint-neutral  .stat-value { color: var(--text-primary); }
+.stat:first-child { padding-left: 0; }
+.stat:last-child { padding-right: 0; }
 
 .stat-label {
   display: block;
   font-size: 11px;
   margin-bottom: 4px;
+  color: var(--text-tertiary);
 }
 
 .stat-value {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
   font-family: 'DIN', sans-serif;
 }
+
+.stat-value.is-warn { color: var(--color-warning); }
+.stat-value.is-alert { color: var(--color-danger); }
 
 .stat-value.warn {
   color: var(--color-warning);
@@ -1201,9 +1189,9 @@ function showSource(field) {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 4px 12px;
-  background: var(--d-customer-50);
-  color: var(--d-customer-800);
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--color-primary);
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
@@ -1224,22 +1212,30 @@ function showSource(field) {
   color: var(--text-tertiary);
 }
 
-/* 材料列表 */
+/* 材料列表：改为白卡内的行列表，与下方信息分组风格统一 */
 .material-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  background: var(--surface-container);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
 .material-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--bg-card);
+  gap: 10px;
+  background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  border-bottom: 1px solid var(--surface-container-low);
+  border-radius: 0;
+  padding: 12px 14px;
   cursor: pointer;
+}
+
+.material-item:last-child {
+  border-bottom: none;
 }
 
 .mat-icon {
@@ -1249,7 +1245,7 @@ function showSource(field) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--d-customer-50);
+  background: var(--surface-container-high);
 }
 
 .mat-icon.add {
@@ -1257,6 +1253,7 @@ function showSource(field) {
 }
 
 .mat-info {
+  flex: 1;
   min-width: 0;
 }
 
@@ -1274,7 +1271,7 @@ function showSource(field) {
 
 .mat-confidence {
   font-size: 11px;
-  color: var(--d-customer-600);
+  color: var(--text-tertiary);
   font-family: 'DIN', sans-serif;
 }
 
@@ -1287,11 +1284,11 @@ function showSource(field) {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 4px 12px;
-  background: var(--d-customer-50);
-  color: var(--d-customer-800);
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--color-primary);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 
@@ -1349,7 +1346,7 @@ function showSource(field) {
   width: 64px;
   height: 64px;
   border-radius: 20px;
-  background: var(--d-customer-50);
+  background: var(--surface-container-high);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1542,8 +1539,8 @@ function showSource(field) {
 }
 
 .ep-chip.active {
-  background: var(--d-customer-50);
-  color: var(--d-customer-800);
+  background: var(--primary-container);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -1591,8 +1588,8 @@ function showSource(field) {
 }
 
 .mtp-chip.active {
-  background: var(--d-customer-50);
-  color: var(--d-customer-800);
+  background: var(--primary-container);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -1648,11 +1645,13 @@ function showSource(field) {
   color: var(--color-success);
 }
 
+/* 溯源：文字按钮代替放大镜图标，减少图标噪音 */
 .info-source {
-  padding: 4px;
+  font-size: 11px;
+  color: var(--color-primary);
+  padding: 2px 6px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
+  flex-shrink: 0;
 }
 
 /* 关联日程 */
@@ -1675,16 +1674,13 @@ function showSource(field) {
 }
 
 .sch-time {
-  width: 62px;
+  width: 58px;
   flex-shrink: 0;
   text-align: center;
   border-radius: 8px;
   padding: 5px 4px;
-  background: var(--d-customer-50);
+  background: var(--surface-container-high);
 }
-
-.sch-time.prio-P0 { background: var(--danger-container); }
-.sch-time.prio-P2 { background: var(--surface-container-high); }
 
 .sch-clock {
   font-size: 12px;
@@ -1693,10 +1689,15 @@ function showSource(field) {
   white-space: nowrap;
 }
 
+/* 优先级仅用文字颜色区分，不再给整块上色 */
 .sch-prio {
   font-size: 11px;
   color: var(--text-tertiary);
+  margin-top: 1px;
 }
+
+.sch-prio.prio-P0 { color: var(--color-danger); font-weight: 600; }
+.sch-prio.prio-P1 { color: var(--color-warning); font-weight: 600; }
 
 .sch-info { flex: 1; min-width: 0; }
 
@@ -1747,8 +1748,8 @@ function showSource(field) {
 .adjust-tag {
   font-size: 11px;
   padding: 2px 8px;
-  background: var(--d-customer-50);
-  color: var(--d-customer-800);
+  background: var(--surface-container-high);
+  color: var(--text-secondary);
   border-radius: 8px;
   border: none;
 }
