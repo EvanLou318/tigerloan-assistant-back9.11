@@ -61,6 +61,11 @@
       </div>
     </div>
 
+    <!-- 编辑模式加载中：不展示录入方式选择 -->
+    <div v-else-if="step === 'loading'" class="loading-step">
+      <van-loading size="22" vertical>加载产品信息…</van-loading>
+    </div>
+
     <!-- 语音录入 -->
     <div v-else-if="step === 'voice'" class="voice-step">
       <div class="voice-container">
@@ -232,7 +237,9 @@ const store = useProductStore()
 const editId = route.query.edit || ''
 const isEditMode = !!editId
 
-const step = ref('select') // select, voice, image, pdf, processing, preview
+// select, voice, image, pdf, processing, preview, loading（编辑模式加载中）
+// 编辑模式直接进 loading，避免闪现「选择录入方式」
+const step = ref(isEditMode ? 'loading' : 'select')
 const method = ref('')
 const isRecording = ref(false)
 
@@ -441,6 +448,13 @@ async function onSave() {
 <style scoped>
 .select-step {
   padding: 24px 16px;
+}
+
+.loading-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
 }
 
 .select-header {
