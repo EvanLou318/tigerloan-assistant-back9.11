@@ -15,6 +15,10 @@ const request = axios.create({
 request.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
+    // 用自定义头传 token：部分部署平台的网关会覆盖标准 Authorization 头，
+    // 导致服务端永远收不到我们的 JWT（表现为登录成功即掉线）。
+    // 同时保留 Authorization 以兼容本地开发与其他环境。
+    config.headers['X-Auth-Token'] = token
     config.headers.Authorization = `Bearer ${token}`
   }
   return config

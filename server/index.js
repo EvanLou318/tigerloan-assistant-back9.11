@@ -28,6 +28,7 @@ import { SERVICE_CATEGORIES, getCategoryRuntime } from './services/ai/registry.j
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+
 // 首次启动播种演示数据
 seedIfEmpty()
 // RBAC 角色权限 + 系统设置增量播种（旧库安全升级）

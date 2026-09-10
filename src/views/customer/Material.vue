@@ -369,7 +369,10 @@ async function onFileChange(e) {
       fd.append('type', material.key)
       const resp = await fetch(`/api/ai/ocr/${material.key}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+        headers: {
+          'X-Auth-Token': localStorage.getItem('token') || '',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
         body: fd,
       })
       const body = await resp.json()
