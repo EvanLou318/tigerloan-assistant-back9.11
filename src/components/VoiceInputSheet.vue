@@ -8,11 +8,11 @@
     @closed="onClosed"
   >
     <div class="voice-sheet">
-      <!-- 头部 -->
+      <!-- 头部：标题一行 + 提示单独一行，避免互相挤压换行 -->
       <div class="vs-header">
         <div class="vs-title">
           <span class="vs-title-dot"></span>
-          语音输入
+          <span class="vs-title-text">语音输入</span>
           <span class="vs-field-tag" v-if="voiceState.label">{{ voiceState.label }}</span>
         </div>
         <div class="vs-sub" v-if="step === 'idle'">点击麦克风，说出{{ voiceState.label || '内容' }}，自动转成文字</div>
@@ -156,9 +156,6 @@ onBeforeUnmount(clearTimer)
 }
 
 .vs-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding-bottom: 4px;
 }
 .vs-title {
@@ -168,14 +165,20 @@ onBeforeUnmount(clearTimer)
   font-weight: 600;
   color: var(--text-primary, #1F2937);
   gap: 6px;
+  white-space: nowrap;
+}
+.vs-title-text {
+  flex: none;
 }
 .vs-title-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--color-primary);
+  flex: none;
 }
 .vs-field-tag {
+  flex: none;
   font-size: 12px;
   font-weight: 500;
   color: #2E6BFF;
@@ -183,12 +186,15 @@ onBeforeUnmount(clearTimer)
   border-radius: 999px;
   padding: 2px 10px;
   margin-left: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
 }
 .vs-sub {
   font-size: 12px;
   color: var(--text-tertiary, #94A3B8);
-  max-width: 55%;
-  text-align: right;
+  margin-top: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

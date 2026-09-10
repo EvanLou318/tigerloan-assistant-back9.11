@@ -194,32 +194,29 @@
           <van-field v-model="formData.maxAmount" label="最高额度" type="digit" placeholder="如 30" :rules="[{ required: true, message: '请输入最高额度' }]">
             <template #button><span style="color: var(--text-tertiary);">万</span></template>
           </van-field>
-          <!-- 贷款期限：最短 / 最长 月份分别填写 -->
-          <div class="range-row">
-            <van-field
-              v-model="formData.minTerm"
-              class="range-field"
-              label-width="60"
-              label="最短"
-              type="digit"
-              placeholder="如 12"
-              :rules="[{ required: true, message: '请输入最短期限' }]"
-            >
-              <template #button><span class="unit">个月</span></template>
-            </van-field>
-            <span class="range-sep">-</span>
-            <van-field
-              v-model="formData.maxTerm"
-              class="range-field"
-              label-width="60"
-              label="最长"
-              type="digit"
-              placeholder="如 36"
-              :rules="[{ required: true, message: '请输入最长期限' }]"
-            >
-              <template #button><span class="unit">个月</span></template>
-            </van-field>
-          </div>
+          <!-- 贷款期限：最短 / 最长 月份分别填写（单行内双输入） -->
+          <van-field label="贷款期限" class="term-field">
+            <template #input>
+              <div class="term-inputs">
+                <input
+                  v-model="formData.minTerm"
+                  class="term-input"
+                  type="digit"
+                  placeholder="最短"
+                  inputmode="numeric"
+                />
+                <span class="term-sep">—</span>
+                <input
+                  v-model="formData.maxTerm"
+                  class="term-input"
+                  type="digit"
+                  placeholder="最长"
+                  inputmode="numeric"
+                />
+                <span class="unit">个月</span>
+              </div>
+            </template>
+          </van-field>
 
           <!-- 还款方式：常用方式枚举选择 -->
           <van-field
@@ -521,7 +518,11 @@ async function onSave() {
     return
   }
   // 校验期限区间（最短/最长月数）
-  if (formData.minTerm && formData.maxTerm && Number(formData.minTerm) > Number(formData.maxTerm)) {
+  if (!formData.minTerm || !formData.maxTerm) {
+    showToast('请填写贷款期限（最短和最长月数）')
+    return
+  }
+  if (Number(formData.minTerm) > Number(formData.maxTerm)) {
     showToast('最短期限不能大于最长期限')
     return
   }
@@ -595,27 +596,47 @@ async function onSave() {
   color: var(--color-primary);
 }
 
-/* 贷款期限区间输入 */
-.range-row {
+/* 贷款期限：单行内双输入 */
+.term-inputs {
   display: flex;
   align-items: center;
-  background: var(--surface-container);
+  gap: 8px;
+  width: 100%;
 }
 
-.range-field {
+.term-input {
   flex: 1;
   min-width: 0;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-primary);
+  padding: 6px 0;
+  border-radius: 8px;
+  background: var(--bg-base, #F1F3F7);
 }
 
-.range-sep {
+.term-input::placeholder {
   color: var(--text-tertiary);
-  padding: 0 2px;
+  font-size: 13px;
+}
+
+.term-input:focus {
+  box-shadow: 0 0 0 1.5px var(--color-primary);
+}
+
+.term-sep {
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 
 .unit {
   color: var(--text-tertiary);
   font-size: 13px;
+  flex-shrink: 0;
 }
 
 .select-header {
@@ -916,6 +937,11 @@ async function onSave() {
 /* 预览 */
 .preview-step {
   padding: 16px 0;
+}
+
+/* 全局样式把 inset 卡片 margin 归零了，本页恢复左右留白 */
+.preview-step :deep(.van-cell-group--inset) {
+  margin: 0 16px !important;
 }
 
 .preview-header {
