@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   name          TEXT NOT NULL DEFAULT '',
   role          TEXT NOT NULL DEFAULT 'loan_manager',
+  avatar        TEXT NOT NULL DEFAULT '',
   created_at    TEXT NOT NULL
 );
 
@@ -212,6 +213,7 @@ function ensureColumn(table, column, ddl) {
   }
 }
 ensureColumn('products', 'rate_type', "rate_type TEXT NOT NULL DEFAULT 'annual'")
+ensureColumn('users', 'avatar', "avatar TEXT NOT NULL DEFAULT ''")
 
 // ---------- 行 → 前端对象 映射（snake_case → camelCase） ----------
 

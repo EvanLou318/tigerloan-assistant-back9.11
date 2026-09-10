@@ -37,5 +37,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { token, userInfo, login, logout, getSavedCredentials }
+  // 更新头像字段并持久化（不触碰 token）
+  function setAvatar(url) {
+    if (!userInfo.value) userInfo.value = {}
+    userInfo.value.avatar = url
+    localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+  }
+
+  return { token, userInfo, login, logout, getSavedCredentials, setAvatar }
 })

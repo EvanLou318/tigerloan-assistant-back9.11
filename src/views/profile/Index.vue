@@ -7,13 +7,18 @@
         <span class="hero-nav-title">个人中心</span>
       </div>
         <div class="user-row">
-          <div class="avatar">{{ (userInfo?.name || '李').charAt(0) }}</div>
+          <div class="avatar" @click="pickAvatar">
+            <img v-if="avatarUrl" :src="avatarUrl" class="avatar-img" alt="头像" />
+            <span v-else>{{ (userInfo?.name || '李').charAt(0) }}</span>
+            <div class="avatar-edit"><AppIcon name="camera" :size="12" /></div>
+          </div>
           <div class="user-text">
             <div class="user-name">{{ userInfo?.name || '李经理' }} <span class="verified">✓ 已认证</span></div>
             <div class="user-phone">{{ userInfo?.phone || '13800138000' }}</div>
           </div>
           <AppIcon name="chevron-right" :size="18" color="var(--text-tertiary)" />
         </div>
+        <input ref="fileInput" type="file" accept="image/*" style="display: none" @change="onAvatarChange" />
         <div class="stats">
           <div class="stat-cell tint-product" @click="$router.push('/products')">
             <div class="stat-num">{{ productStore.products.length }}</div>
@@ -51,58 +56,10 @@
         </div>
       </div>
 
-      <!-- 系统信息 -->
-      <div class="list-section">
-        <div class="list-title">系统</div>
-        <div class="list-card">
-          <div class="list-item" @click="showAbout = true">
-            <div class="li-ic" style="background: var(--d-product-50);">
-              <AppIcon name="info" :size="20" color="var(--d-product-600)" />
-            </div>
-            <div class="li-text">关于智贷助手</div>
-            <div class="li-extra">v1.0.0</div>
-          </div>
-          <div class="list-item" @click="showFeedback = true">
-            <div class="li-ic" style="background: var(--d-todo-50);">
-              <AppIcon name="message" :size="20" color="var(--d-todo-600)" />
-            </div>
-            <div class="li-text">意见反馈</div>
-            <AppIcon name="chevron-right" :size="14" color="#94A3B8" />
-          </div>
-        </div>
-      </div>
-
       <!-- 退出登录 -->
       <div class="logout-section">
         <van-button plain round block @click="handleLogout">退出登录</van-button>
       </div>
-
-      <!-- 关于弹窗 -->
-      <van-dialog v-model:show="showAbout" title="关于智贷助手" confirm-button-text="关闭" :show-cancel-button="false">
-        <div style="padding: 16px; text-align: center;">
-          <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.8;">
-            <p style="font-size: 20px; font-weight: 700; color: var(--color-primary); margin-bottom: 12px;">
-              智贷助手 v1.0.0
-            </p>
-            <p>AI 驱动的智能展业平台</p>
-            <p style="margin-top: 8px; font-size: 12px; color: var(--text-tertiary);">
-              面向贷款经理的智能辅助工具<br />
-              通过 AI 能力帮助快速录入资料、智能匹配产品
-            </p>
-          </div>
-        </div>
-      </van-dialog>
-
-      <!-- 反馈弹窗 -->
-      <van-dialog v-model:show="showFeedback" title="意见反馈" confirm-button-text="提交" @confirm="submitFeedback">
-        <div style="padding: 16px;">
-          <van-field v-model="feedbackText" type="textarea" placeholder="请输入您的意见或建议" rows="4" autosize>
-            <template #right-icon>
-              <VoiceMic label="意见反馈" sample="希望增加批量导入客户和导出报表的功能" @confirm="feedbackText = $event" />
-            </template>
-          </van-field>
-        </div>
-      </van-dialog>
 
       <!-- 帮助弹窗 -->
       <van-dialog v-model:show="showHelp" title="使用帮助" confirm-button-text="我知道了" :show-cancel-button="false">
@@ -117,14 +74,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { showSuccessToast, showConfirmDialog } from 'vant'
+import { showSuccessToast, showConfirmDialog, showToast } from 'vant'
 import { useAuthStore } from '../../stores/auth'
 import { useProductStore } from '../../stores/product'
 import { useCustomerStore } from '../../stores/customer'
 import { useScheduleStore } from '../../stores/schedule'
-import VoiceMic from '../../components/VoiceMic.vue'
+import { uploadAvatar } from '../../api/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -133,21 +90,50 @@ const customerStore = useCustomerStore()
 const scheduleStore = useScheduleStore()
 
 const userInfo = authStore.userInfo
-const showAbout = ref(false)
-const showFeedback = ref(false)
 const showHelp = ref(false)
-const feedbackText = ref('')
+const fileInput = ref(null)
+
+// 头像地址：优先本地存储，其次走相对路径（同域静态服务 /uploads）
+const avatarUrl = computed(() => {
+  const a = userInfo?.value?.avatar || ''
+  return a || ''
+})
+
+const uploading = ref(false)
+
+function pickAvatar() {
+  fileInput.value?.click()
+}
+
+async function onAvatarChange(e) {
+  const file = e.target.files?.[0]
+  e.target.value = '' // 允许重复选择同一文件
+  if (!file) return
+  if (!/^image\//.test(file.type)) {
+    showToast('请选择图片文件')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('图片不能超过 5MB')
+    return
+  }
+  if (uploading.value) return
+  uploading.value = true
+  try {
+    const { avatar } = await uploadAvatar(file)
+    authStore.setAvatar(avatar)
+    showSuccessToast('头像已更新')
+  } catch (err) {
+    showToast(err.message || '上传失败，请重试')
+  } finally {
+    uploading.value = false
+  }
+}
 
 function handleLogout() {
   showConfirmDialog({ title: '退出登录', message: '确定要退出登录吗？' })
     .then(() => { authStore.logout(); router.replace('/login') })
     .catch(() => {})
-}
-
-function submitFeedback() {
-  if (!feedbackText.value) return
-  feedbackText.value = ''
-  showSuccessToast('感谢您的反馈')
 }
 </script>
 
@@ -202,6 +188,30 @@ function submitFeedback() {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  position: relative;
+  cursor: pointer;
+  overflow: visible;
+}
+.avatar:active { opacity: 0.85; }
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.avatar-edit {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface-container-lowest);
 }
 
 .user-text { flex: 1; min-width: 0; }

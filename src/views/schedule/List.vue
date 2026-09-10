@@ -133,6 +133,25 @@
         </div>
 
         <div class="dp-actions">
+          <van-button
+            v-if="!detailItem.done"
+            round block type="primary"
+            :loading="acting"
+            loading-text="处理中..."
+            @click="markDone(detailItem)"
+          >
+            <AppIcon name="check-circle" /> 标记完成
+          </van-button>
+          <van-button
+            v-else
+            round block
+            class="dp-restore"
+            :loading="acting"
+            loading-text="处理中..."
+            @click="markDone(detailItem)"
+          >
+            <AppIcon name="refresh" /> 恢复未完成
+          </van-button>
           <van-button plain round block class="dp-delete" @click="confirmDelete(detailItem)">删除日程</van-button>
         </div>
       </template>
@@ -164,6 +183,7 @@ const showMethodSheet = ref(false)
 
 // 详情底部面板
 const showDetail = ref(false)
+const acting = ref(false)
 const detailId = ref(null)
 const detailItem = computed(() => scheduleStore.schedules.find((s) => s.id === detailId.value) || null)
 
@@ -175,6 +195,20 @@ function openDetail(item) {
 function closeDetail() {
   showDetail.value = false
   detailId.value = null
+}
+
+async function markDone(item) {
+  if (acting.value) return
+  acting.value = true
+  try {
+    await scheduleStore.toggleDone(item.id)
+    showSuccessToast(item.done ? '已恢复为未完成' : '已标记完成')
+    closeDetail()
+  } catch (e) {
+    showToast('操作失败，请重试')
+  } finally {
+    acting.value = false
+  }
 }
 
 function confirmDelete(item) {

@@ -71,11 +71,8 @@
               <div class="info-row">
                 <span class="info-label">额度</span>
                 <span class="info-value">{{ product.minAmount }} - {{ product.maxAmount }}万</span>
+                <span class="card-time">{{ formatCreated(product.createdAt) }}</span>
               </div>
-            </div>
-
-            <div class="card-footer">
-              <div class="card-time">{{ product.createdAt.slice(5, 16) }}</div>
             </div>
           </div>
 
@@ -113,6 +110,21 @@ const refreshing = ref(false)
 onMounted(() => {
   store.loadProducts(true)
 })
+
+// 创建时间：今年内省略年份，跨年则带上年份
+function formatCreated(iso) {
+  if (!iso) return ''
+  const d = new Date(iso.replace(' ', 'T'))
+  if (Number.isNaN(d.getTime())) return String(iso).slice(5, 16)
+  const now = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return d.getFullYear() === now.getFullYear()
+    ? `${mm}-${dd} ${hh}:${mi}`
+    : `${d.getFullYear()}-${mm}-${dd}`
+}
 
 async function onRefresh() {
   try {
@@ -241,6 +253,10 @@ async function onRefresh() {
 
 .info-value {
   color: var(--text-secondary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .info-value.rate {
@@ -251,18 +267,14 @@ async function onRefresh() {
   border-radius: 6px;
 }
 
-.card-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: none;
-}
-
+/* 创建时间：与「额度」同行右对齐，不单独占一行 */
 .card-time {
+  margin-left: auto;
+  padding-left: 8px;
+  flex-shrink: 0;
   font-size: 11px;
   color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 新增按钮 */
