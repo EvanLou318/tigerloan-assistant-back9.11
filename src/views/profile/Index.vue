@@ -76,6 +76,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { showSuccessToast, showConfirmDialog, showToast } from 'vant'
 import { useAuthStore } from '../../stores/auth'
 import { useProductStore } from '../../stores/product'
@@ -89,7 +90,8 @@ const productStore = useProductStore()
 const customerStore = useCustomerStore()
 const scheduleStore = useScheduleStore()
 
-const userInfo = authStore.userInfo
+// storeToRefs 保持响应式：下方 avatarUrl 依赖 userInfo.value.avatar，上传后即时生效
+const { userInfo } = storeToRefs(authStore)
 const showHelp = ref(false)
 const fileInput = ref(null)
 

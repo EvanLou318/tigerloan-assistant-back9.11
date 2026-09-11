@@ -43,32 +43,12 @@
           <span class="section-extra" @click="$router.push('/schedules')">查看全部 ›</span>
         </div>
         <div v-if="todayPreview.length > 0" class="schedule-list">
-          <div
+          <ScheduleCard
             v-for="item in todayPreview"
             :key="item.id"
-            class="schedule-row"
+            :item="item"
             @click="openDetail(item)"
-          >
-            <div class="prio-bar" :class="`prio-${item.priority}`"></div>
-            <div class="time-col">
-              <div class="t-time">{{ formatTime(item.startTime) }}</div>
-              <div class="t-prio">{{ item.priority }}</div>
-            </div>
-            <div class="info-col">
-              <div class="i-title">{{ item.title }}</div>
-              <div class="i-meta">
-                <span v-if="item.location">
-                  <AppIcon name="map-pin" :size="10" /> {{ item.location }}
-                </span>
-                <span v-if="item.customerName">
-                  <AppIcon name="user" :size="10" /> {{ item.customerName }}
-                </span>
-              </div>
-            </div>
-            <div class="arrow-col">
-              <AppIcon name="chevron-right" :size="14" color="#94A3B8" />
-            </div>
-          </div>
+          />
         </div>
         <div v-else class="empty-today">
           <AppIcon name="calendar" :size="44" class="empty-ic" />
@@ -122,6 +102,7 @@ import MainLayout from '../../layouts/MainLayout.vue'
 import ProductMethodSheet from '../../components/ProductMethodSheet.vue'
 import ScheduleMethodSheet from '../../components/ScheduleMethodSheet.vue'
 import ScheduleDetailPopup from '../../components/ScheduleDetailPopup.vue'
+import ScheduleCard from '../../components/ScheduleCard.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -210,11 +191,6 @@ const quickActions = [
   { label: '录入产品', icon: 'file-plus', tint: 'product', iconColor: 'var(--d-product-600)', action: () => { showMethodSheet.value = true } },
   { label: '新建客户', icon: 'user-plus', tint: 'customer', iconColor: 'var(--d-customer-600)', action: () => router.push('/customers/create') },
 ]
-
-function formatTime(iso) {
-  const d = new Date(iso)
-  return d.toTimeString().slice(0, 5)
-}
 </script>
 
 <style scoped>
@@ -331,51 +307,12 @@ function formatTime(iso) {
 .section-extra { font-size: 12px; color: var(--color-primary); cursor: pointer; padding: 4px 0; }
 .section-extra:active { opacity: 0.7; }
 
-/* 今日日程列表 */
+/* 今日日程列表（卡片样式统一走 ScheduleCard 组件，与日程页一致） */
 .schedule-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
-.schedule-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--bg-card);
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 12px var(--space-card-pad);
-  box-shadow: var(--shadow-card);
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-.schedule-row:active { transform: scale(0.98); background: var(--bg-card-hover); }
-
-.prio-bar {
-  width: 3px;
-  height: 34px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-.prio-bar.prio-P0 { background: var(--d-alert-500); }
-.prio-bar.prio-P1 { background: var(--d-todo-500); }
-.prio-bar.prio-P2 { background: var(--d-schedule-600); }
-
-.time-col {
-  width: 56px;
-  flex-shrink: 0;
-  text-align: center;
-  border-radius: 10px;
-  padding: 6px 4px;
-  background: var(--d-schedule-50);
-}
-.t-time { font-size: 14px; font-weight: 700; color: var(--d-schedule-800); }
-.t-prio { font-size: 11px; color: var(--d-schedule-600); margin-top: 1px; }
-.info-col { flex: 1; min-width: 0; }
-.i-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
-.i-meta { font-size: 11px; color: var(--text-tertiary); display: flex; flex-wrap: wrap; gap: 8px; }
-.i-meta span { display: inline-flex; align-items: center; gap: 2px; }
-.arrow-col { flex-shrink: 0; }
 
 /* 空状态 */
 .empty-today {

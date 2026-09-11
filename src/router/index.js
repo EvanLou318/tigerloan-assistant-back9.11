@@ -129,11 +129,27 @@ const router = createRouter({
 })
 
 // 路由守卫
+// 仅站内路径可作回跳目标（防 open redirect）
+function safeRedirect(r) {
+  return typeof r === 'string' && r.startsWith('/') && !r.startsWith('//') ? r : ''
+}
+
+function isAdminUser() {
+  let userInfo = null
+  try { userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null') } catch (e) { userInfo = null }
+  const perms = Array.isArray(userInfo?.permissions) ? userInfo.permissions : null
+  // 旧登录态无 permissions 字段：与后台 Layout 全量展示策略一致，放行（接口层仍有 requirePerm 硬保护）
+  if (!perms) return true
+  return perms.includes('admin.dashboard.view')
+}
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   if (to.meta.requiresAuth && !token) {
-    next('/login')
+    next({ path: '/login', query: to.path === '/login' ? {} : { redirect: to.fullPath } })
   } else if (to.path === '/login' && token) {
+    next(safeRedirect(to.query.redirect) || '/home')
+  } else if (to.meta.admin && !isAdminUser()) {
     next('/home')
   } else {
     next()

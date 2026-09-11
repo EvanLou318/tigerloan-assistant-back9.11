@@ -43,3 +43,4 @@ Thumbs.db
 # 根目录 QA 运行产物（截图/临时日志）
 /qa_*.png
 /qa_*.txt
+/live_check.js

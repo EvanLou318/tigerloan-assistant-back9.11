@@ -104,11 +104,12 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import { useAuthStore } from '../../stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const showPassword = ref(false)
@@ -152,7 +153,10 @@ async function onSubmit() {
     // 真实登录：调用后端接口校验账号密码
     await authStore.login(form.phone, form.password, form.remember)
     showToast({ message: '登录成功', type: 'success' })
-    router.replace('/home')
+    // 回到登录前想去的页面（如直达后台地址 #/admin/...），否则进移动端首页
+    const r = route.query.redirect
+    const redirect = typeof r === 'string' && r.startsWith('/') && !r.startsWith('//') ? r : ''
+    router.replace(redirect || '/home')
   } catch (e) {
     showToast(e.message || '登录失败，请重试')
   } finally {
