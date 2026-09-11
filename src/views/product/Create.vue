@@ -288,7 +288,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useProductStore } from '../../stores/product'
 import VoiceMic from '../../components/VoiceMic.vue'
-import { asr, extractProduct } from '../../api/ai'
+import { asr, asrAudio, extractProduct, extractProductFile } from '../../api/ai'
+import { startRecording as launchRecorder } from '../../utils/recorder'
+import { pdfFirstPageToImage, isPdf } from '../../utils/pdfImage'
 
 const route = useRoute()
 const router = useRouter()
@@ -379,6 +381,7 @@ const fileInput = ref(null)
 const saving = ref(false)
 
 let recordTimer = null
+let recorder = null
 
 const formData = reactive({
   productName: '',
@@ -456,9 +459,19 @@ function resetMethod() {
   uploadedFile.value = ''
   recordTime.value = 0
   if (recordTimer) clearInterval(recordTimer)
+  if (recorder) {
+    recorder.cancel()
+    recorder = null
+  }
 }
 
-function startRecording() {
+async function startRecording() {
+  try {
+    recorder = await launchRecorder()
+  } catch (e) {
+    showToast(`${e.message}，已切换为演示模式`)
+    recorder = null
+  }
   isRecording.value = true
   recordTime.value = 0
   recordTimer = setInterval(() => {
@@ -472,13 +485,19 @@ function startRecording() {
 async function stopRecording() {
   isRecording.value = false
   if (recordTimer) clearInterval(recordTimer)
-  if (recordTime.value < 3) {
-    showToast('录音时间过短')
-    return
-  }
   try {
-    // ASR 识别（后端 AI Provider）
-    const result = await asr()
+    let result
+    if (recorder) {
+      // 真实录音 → 上传音频交给后端阿里云 ASR 转写
+      const audio = await recorder.stop()
+      recorder = null
+      if (audio) result = await asrAudio({ blob: audio.blob, sampleRate: audio.sampleRate })
+    }
+    if (!result) result = await asr()
+    if (!(result.text || '').trim()) {
+      showToast('没有听清，请靠近麦克风再说一遍')
+      return
+    }
     asrResult.value = result
   } catch (e) {
     showToast(e.message || '语音识别失败')
@@ -492,6 +511,7 @@ async function processWithAI() {
     // AI 提取（后端 AI Provider）
     const result = await extractProduct(asrResult.value?.text)
     fillFormData(result.data)
+    if (result.demo) showToast(result.note || '未能真实提取，已用演示数据填充，请核对', 4000)
   } catch (e) {
     showToast(e.message || 'AI 提取失败')
   } finally {
@@ -505,16 +525,28 @@ function triggerUpload() {
 }
 
 async function onFileChange(e) {
-  const file = e.target.files[0]
-  if (!file) return
-  uploadedFile.value = file.name
+  const raw = e.target.files[0]
+  if (!raw) return
+  uploadedFile.value = raw.name
   ocrProcessing.value = true
 
   try {
-    // AI 提取（后端 AI Provider，含文件解析延迟）
-    const result = await extractProduct()
+    // PDF（含扫描件）先在浏览器端栅格化成图片，统一走视觉识别链路；
+    // 转换失败（如加密 PDF）时回退直传原文件，由服务端抽文本层
+    let file = raw
+    if (isPdf(raw)) {
+      try {
+        const { blob, name } = await pdfFirstPageToImage(raw)
+        file = new File([blob], name, { type: 'image/jpeg' })
+      } catch (err) {
+        console.warn('PDF 转图片失败，回退直传：', err)
+      }
+    }
+    // AI 提取：文字版 PDF 直传抽文本层更省；图片/扫描件走 DeepSeek Vision
+    const result = await extractProductFile(file)
     ocrResult.value = result
     fillFormData(result.data)
+    if (result.demo) showToast(result.note || '未能真实提取，已用演示数据填充，请核对', 4000)
   } catch (e) {
     showToast(e.message || 'AI 提取失败')
   } finally {
@@ -550,7 +582,37 @@ function fillFormData(data) {
   formData.maxTerm = max
 }
 
+// 严格数值校验：Number('abc') 是 NaN，而 NaN 参与的比较恒为 false，
+// 原来的区间校验对非法输入形同虚设，会直接把脏数据发到后端。
+function checkNum(raw, label, { required = false, max = Infinity } = {}) {
+  const s = String(raw ?? '').trim()
+  if (!s) {
+    if (required) return `${label}不能为空`
+    return null
+  }
+  if (!/^-?\d*\.?\d+$/.test(s)) return `${label}必须是有效数字`
+  const n = Number(s)
+  if (!Number.isFinite(n)) return `${label}必须是有效数字`
+  if (n < 0) return `${label}不能为负数`
+  if (n > max) return `${label}数值过大，请检查`
+  return null
+}
+
 async function onSave() {
+  // 数值合法性（先于区间比较，避免 NaN 比较失效）
+  const numChecks = [
+    [formData.minRate, `最低${rateTypeLabel.value}`, { required: true, max: 100 }],
+    [formData.maxRate, `最高${rateTypeLabel.value}`, { max: 100 }],
+    [formData.minAmount, '最低额度', { required: true, max: 1000000 }],
+    [formData.maxAmount, '最高额度', { required: true, max: 1000000 }],
+  ]
+  for (const [val, label, opt] of numChecks) {
+    const err = checkNum(val, label, opt)
+    if (err) {
+      showToast(err)
+      return
+    }
+  }
   // 校验利率区间
   if (formData.maxRate && Number(formData.minRate) > Number(formData.maxRate)) {
     showToast(`最低${rateTypeLabel.value}不能大于最高${rateTypeLabel.value}`)
@@ -564,6 +626,11 @@ async function onSave() {
   // 校验期限区间（最短/最长月数）
   if (!formData.minTerm || !formData.maxTerm) {
     showToast('请填写贷款期限（最短和最长月数）')
+    return
+  }
+  const termErr = checkNum(formData.minTerm, '最短期限', { max: 600 }) || checkNum(formData.maxTerm, '最长期限', { max: 600 })
+  if (termErr) {
+    showToast(termErr)
     return
   }
   if (Number(formData.minTerm) > Number(formData.maxTerm)) {

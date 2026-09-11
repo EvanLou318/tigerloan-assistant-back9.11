@@ -20,6 +20,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
+    "pdfjs-dist": "^4.10.38",
     "pinia": "^2.1.7",
     "vant": "^4.8.7",
     "vue": "^3.4.21",

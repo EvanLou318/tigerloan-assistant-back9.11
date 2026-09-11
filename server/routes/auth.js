@@ -19,18 +19,20 @@ const router = Router()
 const UPLOAD_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'uploads')
 fs.mkdirSync(UPLOAD_DIR, { recursive: true })
 
+// MIME → 规范后缀，只走白名单映射，不回退信任客户端文件名（防止 avatar_x.html 之类落盘后被直链执行）
+const AVATAR_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' }
+
 const avatarUpload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, UPLOAD_DIR),
     filename: (req, file, cb) => {
-      const map = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' }
-      const ext = map[file.mimetype] || path.extname(file.originalname || '').toLowerCase().slice(0, 5) || '.jpg'
+      const ext = AVATAR_EXT[file.mimetype] || '.jpg'
       cb(null, `avatar_${req.user?.id || 'u'}_${genId('')}${ext}`)
     },
   }),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 }, // 5MB
   fileFilter: (req, file, cb) => {
-    if (!/^image\//.test(file.mimetype)) return cb(new Error('仅支持上传图片文件'))
+    if (!AVATAR_EXT[file.mimetype]) return cb(new Error('仅支持上传 jpg / png / webp / gif 图片'))
     cb(null, true)
   },
 })

@@ -7,6 +7,7 @@ import { db } from './db.js'
 // ---------- 权限目录（按模块分组） ----------
 export const PERMISSION_CATALOG = [
   { code: 'admin.dashboard.view', name: '查看数据看板', module: '数据看板' },
+  { code: 'admin.dashboard.global', name: '查看全局经营数据（含客户明细）', module: '数据看板' },
   { code: 'admin.customers.view', name: '查看客户列表', module: '客户管理' },
   { code: 'admin.customers.delete', name: '删除客户档案', module: '客户管理' },
   { code: 'customers.unmasked', name: '查看敏感字段明文', module: '客户管理' },
@@ -39,6 +40,7 @@ const ROLE_DEFS = [
     sort: 2,
     perms: [
       'admin.dashboard.view',
+      'admin.dashboard.global',
       'admin.customers.view',
       'customers.unmasked',
       'admin.products.view',
@@ -50,13 +52,10 @@ const ROLE_DEFS = [
   {
     code: 'loan_manager',
     name: '贷款经理',
-    description: '移动端展业为主，后台仅可查看基础业务数据，敏感字段脱敏',
+    description: '移动端展业为主；后台仅可进入看板，不展示全局经营数据与客户明细，敏感字段脱敏',
     sort: 3,
     perms: [
       'admin.dashboard.view',
-      'admin.customers.view',
-      'admin.products.view',
-      'admin.schedules.view',
     ],
   },
 ]
@@ -76,6 +75,31 @@ export function ensureRBACSeed() {
   }
   for (const r of ROLE_DEFS) {
     for (const c of r.perms) insRP.run(r.code, c)
+  }
+
+  // 历史库迁移：收回曾经授予、现已移出默认清单的权限
+  // INSERT OR IGNORE 只增不减，若不主动回收，旧库里的越权授权会一直留着。
+  // 注意：仅回收「本版本之前确实写进默认清单里」的权限，管理员在权限矩阵里
+  // 手工勾选的额外授权不受影响（这里只针对下面这张显式清单）。
+  const REVOKED_PERMS = [
+    // 2026-09-10：贷款经理原可读后台客户/产品/日程列表，但这些后台页复用移动端接口
+    // （按 user_id 过滤），经理进去只能看到空列表 —— 移除以免误授全局数据视图
+    { role: 'loan_manager', perm: 'admin.customers.view' },
+    { role: 'loan_manager', perm: 'admin.products.view' },
+    { role: 'loan_manager', perm: 'admin.schedules.view' },
+  ]
+  const delRP = db.prepare('DELETE FROM role_permissions WHERE role_code = ? AND permission_code = ?')
+  for (const { role, perm } of REVOKED_PERMS) {
+    // 只有当该权限不在该角色的当前默认清单里时才回收
+    const stillDefault = ROLE_DEFS.find((r) => r.code === role)?.perms.includes(perm)
+    if (!stillDefault) delRP.run(role, perm)
+  }
+
+  // 全局经营数据权限补授（管理员/主管）——旧库里没这条记录时需要补上
+  for (const r of ROLE_DEFS) {
+    if (r.perms.includes('admin.dashboard.global')) {
+      insRP.run(r.code, 'admin.dashboard.global')
+    }
   }
 
   // 系统设置默认值：敏感字段脱敏开启

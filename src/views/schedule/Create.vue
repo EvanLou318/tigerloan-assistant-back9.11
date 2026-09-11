@@ -176,7 +176,8 @@ import { useRoute } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useScheduleStore } from '../../stores/schedule'
 import { useCustomerStore } from '../../stores/customer'
-import { asr as asrApi, extractSchedule as extractScheduleApi } from '../../api/ai'
+import { asr as asrApi, asrAudio, extractSchedule as extractScheduleApi } from '../../api/ai'
+import { startRecording as launchRecorder } from '../../utils/recorder'
 import VoiceMic from '../../components/VoiceMic.vue'
 
 const router = useRouter()
@@ -196,6 +197,7 @@ const asrResult = ref('')
 const asrConfidence = ref(0)
 const aiProcessing = ref(false)
 let recordTimer = null
+let recorder = null
 
 
 // 表单
@@ -291,7 +293,13 @@ function ensureDefaults() {
 }
 
 /* ============== 语音 ============== */
-function startRecording() {
+async function startRecording() {
+  try {
+    recorder = await launchRecorder()
+  } catch (e) {
+    showToast(`${e.message}，已切换为演示模式`)
+    recorder = null
+  }
   isRecording.value = true
   recordTime.value = 0
   recordTimer = setInterval(() => {
@@ -304,6 +312,10 @@ function resetRecording() {
   if (recordTimer) {
     clearInterval(recordTimer)
     recordTimer = null
+  }
+  if (recorder) {
+    recorder.cancel()
+    recorder = null
   }
   isRecording.value = false
   recordTime.value = 0
@@ -318,13 +330,23 @@ async function stopRecording() {
     clearInterval(recordTimer)
     recordTimer = null
   }
-  if (recordTime.value < 2) {
-    showToast('录音时间过短')
-    return
+  try {
+    let result
+    if (recorder) {
+      const audio = await recorder.stop()
+      recorder = null
+      if (audio) result = await asrAudio({ blob: audio.blob, sampleRate: audio.sampleRate })
+    }
+    if (!result) result = await asrApi()
+    if (!(result.text || '').trim()) {
+      showToast('没有听清，请靠近麦克风再说一遍')
+      return
+    }
+    asrResult.value = result.text
+    asrConfidence.value = Math.round((result.confidence || 0.9) * 100)
+  } catch (e) {
+    showToast(e.message || '语音识别失败')
   }
-  const result = await asrApi()
-  asrResult.value = result.text
-  asrConfidence.value = Math.round((result.confidence || 0.9) * 100)
 }
 
 async function processVoice() {

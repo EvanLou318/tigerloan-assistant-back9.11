@@ -272,7 +272,8 @@ import { useRouter } from 'vue-router'
 import { showSuccessToast, showToast } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
 import VoiceMic from '../../components/VoiceMic.vue'
-import { asr as asrApi, extractCustomerFromVoice } from '../../api/ai'
+import { asr as asrApi, asrAudio, extractCustomerFromVoice } from '../../api/ai'
+import { startRecording as launchRecorder } from '../../utils/recorder'
 
 const router = useRouter()
 const store = useCustomerStore()
@@ -319,6 +320,7 @@ const mode = ref('manual')
 const voiceStep = ref('idle') // idle | recording | transcribing | analyzing | review
 const recordTime = ref(0)
 let recordTimer = null
+let recorder = null
 const transcript = ref('')
 const recognizedTypes = ref([])
 const aiSummary = ref('')
@@ -331,7 +333,13 @@ function switchMode(m) {
   if (m === 'voice') resetVoice()
 }
 
-function startRecord() {
+async function startRecord() {
+  try {
+    recorder = await launchRecorder()
+  } catch (e) {
+    showToast(`${e.message}，已切换为演示模式`)
+    recorder = null
+  }
   voiceStep.value = 'recording'
   recordTime.value = 0
   recordTimer = setInterval(() => {
@@ -344,8 +352,26 @@ async function stopRecord() {
   recordTimer = null
   voiceStep.value = 'transcribing'
 
-  // 1. ASR 语音转文字
-  const asrRes = await asrApi()
+  // 1. ASR 语音转文字（有真实录音则上传音频，否则走演示文本）
+  let asrRes
+  try {
+    if (recorder) {
+      const audio = await recorder.stop()
+      recorder = null
+      if (audio) asrRes = await asrAudio({ blob: audio.blob, sampleRate: audio.sampleRate })
+    }
+    if (!asrRes) asrRes = await asrApi()
+  } catch (e) {
+    showToast(e.message || '语音识别失败')
+    voiceStep.value = 'idle'
+    return
+  }
+  if (!(asrRes.text || '').trim()) {
+    // 静音/非人声时阿里云返回空串，别让空文本流入大模型
+    showToast('没有听清，请靠近麦克风再说一遍')
+    voiceStep.value = 'idle'
+    return
+  }
   transcript.value = asrRes.text
   voiceStep.value = 'analyzing'
 
@@ -375,6 +401,10 @@ async function stopRecord() {
 function resetVoice() {
   clearInterval(recordTimer)
   recordTimer = null
+  if (recorder) {
+    recorder.cancel()
+    recorder = null
+  }
   voiceStep.value = 'idle'
   recordTime.value = 0
   transcript.value = ''

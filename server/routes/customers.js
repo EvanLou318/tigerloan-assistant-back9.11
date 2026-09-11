@@ -124,11 +124,23 @@ router.put('/:id', (req, res) => {
 // DELETE /api/customers/:id  删除客户（材料级联删除）
 router.delete('/:id', (req, res) => {
   const row = findCustomerRow(req.params.id, req.user.id)
+  // 日程不做级联删除（日程本身是经理的工作安排，有价值），只解除关联，
+  // 否则会留下指向已删客户的悬空 customer_id，日程卡片继续展示不存在的客户名。
+  const orphaningSchedules = db
+    .prepare('SELECT COUNT(*) AS n FROM schedules WHERE customer_id = ? AND user_id = ?')
+    .get(req.params.id, req.user.id).n
   db.prepare('DELETE FROM materials WHERE customer_id = ?').run(req.params.id)
   db.prepare('DELETE FROM simulations WHERE customer_id = ? AND user_id = ?').run(req.params.id, req.user.id)
+  db.prepare('UPDATE schedules SET customer_id = NULL, customer_name = ? WHERE customer_id = ? AND user_id = ?')
+    .run('', req.params.id, req.user.id)
   db.prepare('DELETE FROM customers WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id)
-  writeAudit(req, 'customer.delete', `${row.name}（ID ${row.id}）`, '级联删除材料与推演记录')
-  ok(res, { deleted: true })
+  writeAudit(
+    req,
+    'customer.delete',
+    `${row.name}（ID ${row.id}）`,
+    `级联删除材料与推演记录${orphaningSchedules ? `；已解除 ${orphaningSchedules} 条关联日程` : ''}`
+  )
+  ok(res, { deleted: true, detachedSchedules: orphaningSchedules })
 })
 
 // ---------- 材料 ----------

@@ -74,23 +74,30 @@ if pid:
     r, code, _ = curl("POST", "/api/products", token=TOKEN, body={**newp, "productName": "__QA非法利率类型__", "rateType": "weekly"})
     bad_id = r["data"]["id"] if r and r.get("success") else None
     rt = r["data"].get("rateType") if r and r.get("success") else None
-    check("非法 rateType 未被校验（缺陷）", code == 200 and rt == "weekly", f"存入了 rateType={rt}")
+    check("非法 rateType 被白名单兜底为 annual", code == 200 and rt == "annual", f"rateType={rt}")
     if bad_id:
         curl("DELETE", f"/api/products/{bad_id}", token=TOKEN)
 
-# 创建：负数利率/额度
+# 创建：负数利率/额度（应被拒绝）
 r, code, _ = curl("POST", "/api/products", token=TOKEN, body={**newp, "productName": "__QA负数__", "minRate": -5, "maxAmount": -10})
 neg_id = r["data"]["id"] if r and r.get("success") else None
-check("负数金额/利率未被校验（缺陷）", code == 200, f"minRate=-5 被接受")
+check("负数金额/利率被拒绝", code == 400, f"code={code}")
 if neg_id:
     curl("DELETE", f"/api/products/{neg_id}", token=TOKEN)
 
-# 创建：minRate > maxRate
+# 创建：minRate > maxRate（应被拒绝）
 r, code, _ = curl("POST", "/api/products", token=TOKEN, body={**newp, "productName": "__QA倒挂__", "minRate": 9, "maxRate": 2})
 inv_id = r["data"]["id"] if r and r.get("success") else None
-check("minRate>maxRate 未被校验（缺陷）", code == 200, "9% ~ 2% 被接受")
+check("minRate>maxRate 被拒绝", code == 400, f"code={code}")
 if inv_id:
     curl("DELETE", f"/api/products/{inv_id}", token=TOKEN)
+
+# 创建：非数字字符串（原先 Number(x)||0 会静默吞成 0）
+r, code, _ = curl("POST", "/api/products", token=TOKEN, body={**newp, "productName": "__QA非数字__", "minRate": "abc"})
+nd_id = r["data"]["id"] if r and r.get("success") else None
+check("非数字字符串被拒绝（不再静默转 0）", code == 400, f"code={code}")
+if nd_id:
+    curl("DELETE", f"/api/products/{nd_id}", token=TOKEN)
 
 # 超长字符串
 r, code, _ = curl("POST", "/api/products", token=TOKEN, body={**newp, "productName": "超" * 5000})
@@ -119,7 +126,7 @@ check("创建客户缺姓名被拒", code == 400, f"code={code}")
 
 r, code, _ = curl("POST", "/api/customers", token=TOKEN, body={"name": "__QA客户__", "phone": "abc12345678"})
 qc = r["data"]["id"] if r and r.get("success") else None
-check("非法手机号未被校验（缺陷）", code == 200, f"phone='abc12345678' 被接受")
+check("非法手机号被拒绝", code == 400, f"code={code}")
 if qc:
     curl("DELETE", f"/api/customers/{qc}", token=TOKEN)
 
@@ -141,17 +148,33 @@ check("创建日程缺标题被拒", code == 400, f"code={code}")
 r, code, _ = curl("POST", "/api/schedules", token=TOKEN, body={"title": "__QA日程__"})
 check("创建日程缺开始时间被拒", code == 400, f"code={code}")
 
-# 非法时间格式
+# 非法时间格式（应被拒绝）
 r, code, _ = curl("POST", "/api/schedules", token=TOKEN, body={"title": "__QA坏时间__", "startTime": "not-a-date"})
 bad_sch = r["data"]["id"] if r and r.get("success") else None
-check("非法时间格式未被校验（缺陷）", code == 200, f"startTime='not-a-date' 被接受")
+check("非法时间格式被拒绝", code == 400, f"code={code}")
 if bad_sch:
     curl("DELETE", f"/api/schedules/{bad_sch}", token=TOKEN)
 
-# 非法优先级
+# 结束时间早于开始时间（应被拒绝）
+r, code, _ = curl("POST", "/api/schedules", token=TOKEN, body={
+    "title": "__QA时间倒挂__", "startTime": "2026-09-20T18:00", "endTime": "2026-09-20T09:00"})
+rev_sch = r["data"]["id"] if r and r.get("success") else None
+check("结束时间早于开始时间被拒绝", code == 400, f"code={code}")
+if rev_sch:
+    curl("DELETE", f"/api/schedules/{rev_sch}", token=TOKEN)
+
+# 提醒时间晚于开始时间（应被拒绝）
+r, code, _ = curl("POST", "/api/schedules", token=TOKEN, body={
+    "title": "__QA提醒倒挂__", "startTime": "2026-09-20T09:00", "reminderTime": "2026-09-20T20:00"})
+rem_sch = r["data"]["id"] if r and r.get("success") else None
+check("提醒时间晚于开始时间被拒绝", code == 400, f"code={code}")
+if rem_sch:
+    curl("DELETE", f"/api/schedules/{rem_sch}", token=TOKEN)
+
+# 非法优先级（应被拒绝）
 r, code, _ = curl("POST", "/api/schedules", token=TOKEN, body={"title": "__QA坏优先级__", "startTime": "2026-09-15T10:00", "priority": "P9"})
 bp = r["data"]["id"] if r and r.get("success") else None
-check("非法优先级未被校验（缺陷）", code == 200, f"priority='P9' 被接受")
+check("非法优先级被拒绝", code == 400, f"code={code}")
 if bp:
     curl("DELETE", f"/api/schedules/{bp}", token=TOKEN)
 
@@ -200,9 +223,17 @@ if r and r.get("success"):
     print("      data:", json.dumps(r["data"], ensure_ascii=False)[:200])
 
 # ---------- AI 接口 ----------
+# /api/ai/match 的契约是 { customer: 客户对象, products: 产品数组 }，
+# 传 customerId 会被后端判为缺参数——这是调用方用法问题，不是接口缺陷。
 print("\n=== 8. AI 接口 ===")
-r, code, _ = curl("POST", "/api/ai/match", token=TOKEN, body={"customerId": cid})
-check("AI 匹配可调用", code == 200, f"code={code}")
+r, _, _ = curl("GET", "/api/customers", token=TOKEN)
+_cust = (r or {}).get("data") or []
+if _cust:
+    r, code, _ = curl("POST", "/api/ai/match", token=TOKEN, body={"customer": _cust[0], "products": []})
+    ok_cnt = len(r["data"].get("approved") or []) if r and r.get("success") else 0
+    check("AI 匹配可调用（正确契约）", code == 200, f"code={code} 命中 {ok_cnt} 款")
+else:
+    check("AI 匹配可调用（正确契约）", False, "无客户数据可测")
 r, code, _ = curl("POST", "/api/ai/match", token=TOKEN, body={})
 check("AI 匹配缺参数报错可控", code in (200, 400), f"code={code}")
 

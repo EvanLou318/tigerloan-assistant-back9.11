@@ -35,3 +35,11 @@ Thumbs.db
 
 # 截图验证脚本产物（临时）
 *.local
+
+# QA 临时文件（headless chrome 用户目录、测试探针、临时日志）
+.qa_chrome*/
+.qa_*
+
+# 根目录 QA 运行产物（截图/临时日志）
+/qa_*.png
+/qa_*.txt

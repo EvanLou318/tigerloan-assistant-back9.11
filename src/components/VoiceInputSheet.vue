@@ -70,13 +70,15 @@
 import { ref, onBeforeUnmount } from 'vue'
 import { showToast, showSuccessToast } from 'vant'
 import { voiceState, closeVoiceInput } from '../stores/voiceInput'
-import { asr as asrApi } from '../api/ai'
+import { asr as asrApi, asrAudio } from '../api/ai'
+import { startRecording } from '../utils/recorder'
 
 const step = ref('idle') // idle | recording | transcribing | done
 const recTime = ref(0)
 const transcript = ref('')
 const confidence = ref(0)
 let recordTimer = null
+let recorder = null // 真实录音句柄，null 表示当前无有效录音
 
 const MAX_SEC = 20
 
@@ -87,7 +89,14 @@ function clearTimer() {
   }
 }
 
-function start() {
+async function start() {
+  try {
+    recorder = await startRecording()
+  } catch (e) {
+    // 麦克风不可用时不阻断业务：降级为「无录音演示模式」，仍走后端（mock 或已配真实供应商）
+    showToast(`${e.message}，已切换为演示模式`)
+    recorder = null
+  }
   step.value = 'recording'
   recTime.value = 0
   recordTimer = setInterval(() => {
@@ -100,16 +109,39 @@ async function stop() {
   if (step.value !== 'recording') return
   clearTimer()
   if (recTime.value < 1) {
+    recorder?.cancel()
+    recorder = null
     step.value = 'idle'
     showToast('说话时间太短，请重试')
     return
   }
   step.value = 'transcribing'
   try {
-    // 走后端 AI 工厂：配置真实 ASR 供应商时返回真实识别结果；否则 mock（返回该字段的示例口述）
-    const sample = voiceState.sample || undefined
-    const res = await asrApi(sample)
-    transcript.value = res.text || ''
+    let res
+    if (recorder) {
+      // 真实录音 → 上传音频，由后端调阿里云智能语音交互转写
+      const audio = await recorder.stop()
+      recorder = null
+      if (audio) {
+        res = await asrAudio({
+          blob: audio.blob,
+          sampleRate: audio.sampleRate,
+          text: voiceState.sample || undefined,
+        })
+      }
+    }
+    if (!res) {
+      // 降级链路：后端 ASR 未配真实供应商时走 mock，返回该字段的示例口述文本
+      res = await asrApi(voiceState.sample || undefined)
+    }
+    const text = (res.text || '').trim()
+    if (!text) {
+      // 阿里云对静音/非语音信号会返回空串，直接进结果页会让用户对着空白框发懵
+      step.value = 'idle'
+      showToast('没有听清，请靠近麦克风再说一遍')
+      return
+    }
+    transcript.value = text
     confidence.value = Math.round((res.confidence || 0.9) * 100)
     step.value = 'done'
   } catch (e) {
@@ -120,6 +152,10 @@ async function stop() {
 
 function reset() {
   clearTimer()
+  if (recorder) {
+    recorder.cancel()
+    recorder = null
+  }
   step.value = 'idle'
   recTime.value = 0
   transcript.value = ''

@@ -23,26 +23,53 @@ const router = Router()
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
 // ---------- 全局统计看板 ----------
+// 权限分两层：
+//   admin.dashboard.view   能进看板（管理员/主管/贷款经理）
+//   admin.dashboard.global 能看全局经营数据与客户明细（管理员/主管）
+// 贷款经理只拿到有限的个人视角数据（自己名下的客户/产品/日程计数），
+// 全站用户数、全库收入负债合计、最近客户明细一律不下发，避免越权与 PII 泄露。
 router.get('/stats', requirePerm('admin.dashboard.view'), (req, res) => {
   const count = (sql, ...args) => db.prepare(sql).get(...args).n
+  const global = hasPerm(req.user.role, 'admin.dashboard.global')
 
   const today = fmtDateTime().slice(0, 10)
-  const stats = {
-    userCount: count('SELECT COUNT(*) AS n FROM users'),
-    customerCount: count('SELECT COUNT(*) AS n FROM customers'),
-    productCount: count('SELECT COUNT(*) AS n FROM products'),
-    productActiveCount: count("SELECT COUNT(*) AS n FROM products WHERE status = 'active'"),
-    scheduleCount: count('SELECT COUNT(*) AS n FROM schedules'),
-    scheduleTodayCount: count('SELECT COUNT(*) AS n FROM schedules WHERE start_time LIKE ?', `${today}%`),
-    simulationCount: count('SELECT COUNT(*) AS n FROM simulations'),
-    materialCount: count('SELECT COUNT(*) AS n FROM materials'),
-    customerTodayCount: count('SELECT COUNT(*) AS n FROM customers WHERE created_at LIKE ?', `${today}%`),
-    totalExpectedAmount: db.prepare('SELECT COALESCE(SUM(expected_amount), 0) AS n FROM customers').get().n,
-    totalIncome: db.prepare('SELECT COALESCE(SUM(monthly_income), 0) AS n FROM customers').get().n,
+  const stats = {}
+
+  if (global) {
+    stats.userCount = count('SELECT COUNT(*) AS n FROM users')
+    stats.customerCount = count('SELECT COUNT(*) AS n FROM customers')
+    stats.productCount = count('SELECT COUNT(*) AS n FROM products')
+    stats.productActiveCount = count("SELECT COUNT(*) AS n FROM products WHERE status = 'active'")
+    stats.scheduleCount = count('SELECT COUNT(*) AS n FROM schedules')
+    stats.scheduleTodayCount = count('SELECT COUNT(*) AS n FROM schedules WHERE start_time LIKE ?', `${today}%`)
+    stats.simulationCount = count('SELECT COUNT(*) AS n FROM simulations')
+    stats.materialCount = count('SELECT COUNT(*) AS n FROM materials')
+    stats.customerTodayCount = count('SELECT COUNT(*) AS n FROM customers WHERE created_at LIKE ?', `${today}%`)
+    stats.totalExpectedAmount = db.prepare('SELECT COALESCE(SUM(expected_amount), 0) AS n FROM customers').get().n
+    stats.totalIncome = db.prepare('SELECT COALESCE(SUM(monthly_income), 0) AS n FROM customers').get().n
+  } else {
+    // 个人视角：仅统计本人数据
+    const uid = req.user.id
+    stats.userCount = null
+    stats.customerCount = count('SELECT COUNT(*) AS n FROM customers WHERE user_id = ?', uid)
+    stats.productCount = count('SELECT COUNT(*) AS n FROM products WHERE user_id = ?', uid)
+    stats.productActiveCount = count("SELECT COUNT(*) AS n FROM products WHERE status = 'active' AND user_id = ?", uid)
+    stats.scheduleCount = count('SELECT COUNT(*) AS n FROM schedules WHERE user_id = ?', uid)
+    stats.scheduleTodayCount = count('SELECT COUNT(*) AS n FROM schedules WHERE user_id = ? AND start_time LIKE ?', uid, `${today}%`)
+    stats.simulationCount = count('SELECT COUNT(*) AS n FROM simulations WHERE user_id = ?', uid)
+    stats.materialCount = count(
+      'SELECT COUNT(*) AS n FROM materials m JOIN customers c ON c.id = m.customer_id WHERE c.user_id = ?',
+      uid
+    )
+    stats.customerTodayCount = count('SELECT COUNT(*) AS n FROM customers WHERE user_id = ? AND created_at LIKE ?', uid, `${today}%`)
+    stats.totalExpectedAmount = db.prepare('SELECT COALESCE(SUM(expected_amount), 0) AS n FROM customers WHERE user_id = ?').get(uid).n
+    stats.totalIncome = db.prepare('SELECT COALESCE(SUM(monthly_income), 0) AS n FROM customers WHERE user_id = ?').get(uid).n
   }
 
   // 客户来源分布
-  const sourceRows = db.prepare('SELECT source, COUNT(*) AS n FROM customers GROUP BY source').all()
+  const sourceRows = global
+    ? db.prepare('SELECT source, COUNT(*) AS n FROM customers GROUP BY source').all()
+    : db.prepare('SELECT source, COUNT(*) AS n FROM customers WHERE user_id = ? GROUP BY source').all(req.user.id)
   const sourceMap = {
     friend: '朋友介绍',
     telemarketing: '电话营销',
@@ -64,30 +91,45 @@ router.get('/stats', requirePerm('admin.dashboard.view'), (req, res) => {
     const day = fmtDateTime(d).slice(0, 10)
     trend.push({
       date: day.slice(5),
-      count: count('SELECT COUNT(*) AS n FROM customers WHERE created_at LIKE ?', `${day}%`),
+      count: global
+        ? count('SELECT COUNT(*) AS n FROM customers WHERE created_at LIKE ?', `${day}%`)
+        : count('SELECT COUNT(*) AS n FROM customers WHERE user_id = ? AND created_at LIKE ?', req.user.id, `${day}%`),
     })
   }
   stats.customerTrend = trend
 
-  stats.riskCount = count(
-    'SELECT COUNT(*) AS n FROM customers WHERE max_overdue_months > 0 OR total_debt > 100000 OR query_count_3m > 8'
-  )
+  stats.riskCount = global
+    ? count(
+        'SELECT COUNT(*) AS n FROM customers WHERE max_overdue_months > 0 OR total_debt > 100000 OR query_count_3m > 8'
+      )
+    : count(
+        'SELECT COUNT(*) AS n FROM customers WHERE user_id = ? AND (max_overdue_months > 0 OR total_debt > 100000 OR query_count_3m > 8)',
+        req.user.id
+      )
 
-  // 最近录入的 8 位客户（敏感字段按规则脱敏）
-  stats.recentCustomers = db
-    .prepare('SELECT id, name, gender, age, city, source, monthly_income, total_debt, created_at FROM customers ORDER BY created_at DESC LIMIT 8')
-    .all()
-    .map((r) => ({
-      id: r.id,
-      name: r.name,
-      gender: r.gender,
-      age: r.age,
-      city: r.city,
-      source: sourceMap[r.source] || r.source,
-      monthlyIncome: r.monthly_income,
-      totalDebt: r.total_debt,
-      createdAt: r.created_at,
-    }))
+  // 最近录入的 8 位客户：仅全局视角下发，且必须走脱敏（无 customers.unmasked 的角色看到掩码）
+  if (global) {
+    stats.recentCustomers = db
+      .prepare('SELECT id, user_id, name, phone, id_card, gender, age, city, source, monthly_income, total_debt, created_at FROM customers ORDER BY created_at DESC LIMIT 8')
+      .all()
+      .map((r) => {
+        // 复用统一的脱敏规则：开关 ON 且无 customers.unmasked 时掩码手机号 / 身份证
+        const masked = applyMasking({ phone: r.phone, idCard: r.id_card }, req.user.role)
+        return {
+          id: r.id,
+          name: r.name,
+          gender: r.gender,
+          age: r.age,
+          city: r.city,
+          source: sourceMap[r.source] || r.source,
+          monthlyIncome: r.monthly_income,
+          totalDebt: r.total_debt,
+          createdAt: r.created_at,
+        }
+      })
+  } else {
+    stats.recentCustomers = []
+  }
 
   ok(res, stats)
 })
@@ -187,8 +229,16 @@ router.get('/permissions', requirePerm('admin.roles.manage'), (req, res) => {
   ok(res, PERMISSION_CATALOG)
 })
 
-// 所有角色（供下拉选择，任何已登录者可用）
-router.get('/roles', (req, res) => {
+// 角色简表（code/name/description，不含权限矩阵）
+// 供用户管理页的角色下拉使用，只需 admin.users.manage 即可
+router.get('/role-options', requirePerm('admin.users.manage'), (req, res) => {
+  ok(res, db.prepare('SELECT code, name, description, sort FROM roles ORDER BY sort ASC').all())
+})
+
+// ---------- 角色列表 ----------
+// 完整角色-权限矩阵：仅授予 admin.roles.manage 的角色可读（与 PUT /roles/:code/permissions 对称）
+// 否则任何登录用户都能拿到全量权限矩阵，为提权尝试提供地图
+router.get('/roles', requirePerm('admin.roles.manage'), (req, res) => {
   const roles = db.prepare('SELECT code, name, description, sort FROM roles ORDER BY sort ASC').all()
   ok(res, roles.map((r) => ({ ...r, permissions: getRolePermissions(r.code), userLabel: r.name })))
 })

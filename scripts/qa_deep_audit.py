@@ -89,7 +89,31 @@ if newu:
     UTOKEN = r["data"]["token"] if r and r.get("success") else None
     if UTOKEN:
         # 无权限用户访问 admin
-        for p in ["/api/admin/stats", "/api/admin/users", "/api/admin/audit-logs"]:
+        # /api/admin/stats 设计上是「所有角色都能进看板」，但 loan_manager 只能拿到
+        # 个人视角数据（本人客户/产品/日程计数），全局经营数据与客户明细必须为空。
+        # 因此这里不能只看 HTTP 200，要检查响应内容有没有越权泄露。
+        r, code = curl("GET", "/api/admin/stats", token=UTOKEN)
+        if code == 200 and r and r.get("success"):
+            d = r["data"]
+            rec = d.get("recentCustomers") or []
+            leaked = []
+            if d.get("userCount") not in (None, 0):
+                leaked.append(f"userCount={d['userCount']}")
+            if rec:
+                leaked.append(f"recentCustomers={len(rec)} 条客户明细")
+            # 该账号下无任何客户，所以 totalIncome 应为 0
+            if d.get("totalIncome"):
+                leaked.append(f"totalIncome={d['totalIncome']}")
+            if leaked:
+                report("高", "越权访问 /api/admin/stats", f"loan_manager 拿到全局数据：{', '.join(leaked)}")
+            else:
+                print("  OK: /api/admin/stats -> 200 但仅返回个人视角（userCount=null、无客户明细）")
+        elif code == 403:
+            print("  OK: /api/admin/stats -> 403（已按角色收窄）")
+        else:
+            print(f"  OK: /api/admin/stats -> {code}")
+
+        for p in ["/api/admin/users", "/api/admin/audit-logs", "/api/admin/roles"]:
             r, code = curl("GET", p, token=UTOKEN)
             if code == 200:
                 report("高", f"越权访问 {p}", f"loan_manager 角色可读取管理员接口，返回 200")
@@ -152,6 +176,45 @@ if code == 200:
     pid = r["data"]["id"]
     report("中", "非数字字符串被静默转成 0", f"minRate='abc' 存为 {r['data']['minRate']}（用户输入被无声吞掉）")
     curl("DELETE", f"/api/products/{pid}", token=TOKEN)
+else:
+    print(f"  OK: 非法数值被拒绝 -> {code}")
+
+# C5. 负利率 / 超大数值 必须被拒（原先 Number(x)||0 会吞成 0 或 null）
+for label, body in [
+    ("负利率", {"productName": "__QA负利率__", "institution": "X", "minRate": -5, "minAmount": 1}),
+    ("超大额度", {"productName": "__QA超大__", "institution": "X", "minRate": 3, "minAmount": "1e999"}),
+    ("纯符号额度", {"productName": "__QA符号__", "institution": "X", "minRate": 3, "minAmount": "> 999999"}),
+]:
+    b = dict(body, rateType="annual")
+    r, code = curl("POST", "/api/products", token=TOKEN, body=b)
+    if code == 200:
+        pid = (r.get("data") or {}).get("id")
+        report("中", f"{label}未被校验", f"被接受并入库：{json.dumps((r.get('data') or {}), ensure_ascii=False)[:120]}")
+        if pid:
+            curl("DELETE", f"/api/products/{pid}", token=TOKEN)
+    else:
+        print(f"  OK: {label}被拒绝 -> {code}")
+
+print("\n=== D. 上传安全 ===")
+
+# D1. 非白名单类型上传必须被拒（原先无 fileFilter，可传 .html 后被 /uploads 匿名执行）
+import os
+evil = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".qa_evil_probe.html")
+with open(evil, "w", encoding="utf-8") as f:
+    f.write("<html><script>alert(document.cookie)</script></html>")
+try:
+    out = subprocess.run(
+        ["curl", "-s", "--noproxy", "*", "-m", "20", "-X", "POST", BASE + "/api/ai/ocr/idcard",
+         "-H", f"X-Auth-Token: {TOKEN}", "-F", f"file=@{evil};type=text/html", "-w", "\n@@@%{http_code}"],
+        capture_output=True, text=True).stdout
+    payload, code = out.rsplit("@@@", 1)
+    if int(code) == 200:
+        report("高", "非白名单文件类型可上传", "上传 .html 成功，配合 /uploads 静态直链可触发存储型 XSS")
+    else:
+        print(f"  OK: 上传 .html 被拒 -> {code}")
+finally:
+    if os.path.exists(evil):
+        os.remove(evil)
 
 print("\n" + "=" * 60)
 by_level = {}

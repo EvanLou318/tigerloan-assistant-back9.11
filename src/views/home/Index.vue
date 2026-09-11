@@ -47,7 +47,7 @@
             v-for="item in todayPreview"
             :key="item.id"
             class="schedule-row"
-            @click="$router.push('/schedules')"
+            @click="openDetail(item)"
           >
             <div class="prio-bar" :class="`prio-${item.priority}`"></div>
             <div class="time-col">
@@ -97,12 +97,23 @@
     <ProductMethodSheet v-model:show="showMethodSheet" />
     <!-- 新建日程方式选择弹框 -->
     <ScheduleMethodSheet v-model:show="showScheduleSheet" />
+    <!-- 日程详情：首页内联打开，不跳转列表页 -->
+    <ScheduleDetailPopup
+      v-model:show="showDetail"
+      :item="detailItem"
+      :acting="acting"
+      show-more
+      @toggle="markDone"
+      @delete="confirmDelete"
+      @more="$router.push('/schedules')"
+    />
   </MainLayout>
 </template>
 
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { showSuccessToast, showToast, showConfirmDialog } from 'vant'
 import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
 import { useProductStore } from '../../stores/product'
@@ -110,6 +121,7 @@ import { useCustomerStore } from '../../stores/customer'
 import MainLayout from '../../layouts/MainLayout.vue'
 import ProductMethodSheet from '../../components/ProductMethodSheet.vue'
 import ScheduleMethodSheet from '../../components/ScheduleMethodSheet.vue'
+import ScheduleDetailPopup from '../../components/ScheduleDetailPopup.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -140,6 +152,57 @@ const greeting = computed(() => {
 const todayText = new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
 
 const todayPreview = computed(() => scheduleStore.todaySchedules.slice(0, 3))
+
+/* ============ 今日日程详情：当前页内联打开 ============ */
+const showDetail = ref(false)
+const acting = ref(false)
+const detailId = ref(null)
+// 从 store 实时解析，保证「标记完成 / 删除」后详情内容立即同步
+const detailItem = computed(() => scheduleStore.schedules.find((s) => s.id === detailId.value) || null)
+
+function openDetail(item) {
+  detailId.value = item.id
+  showDetail.value = true
+}
+
+function closeDetail() {
+  showDetail.value = false
+  detailId.value = null
+}
+
+async function markDone(item) {
+  if (acting.value) return
+  acting.value = true
+  try {
+    await scheduleStore.toggleDone(item.id)
+    showSuccessToast(item.done ? '已恢复为未完成' : '已标记完成')
+    // 首页「今日日程」只展示未完成项，操作后该卡片必然从列表消失，详情一并收起
+    closeDetail()
+  } catch (e) {
+    showToast('操作失败，请重试')
+  } finally {
+    acting.value = false
+  }
+}
+
+function confirmDelete(item) {
+  showConfirmDialog({
+    title: '删除日程',
+    message: `确定删除「${item.title}」吗？删除后不可恢复。`,
+    confirmButtonText: '删除',
+    confirmButtonColor: '#F04438',
+  })
+    .then(async () => {
+      try {
+        await scheduleStore.deleteSchedule(item.id)
+        showSuccessToast('已删除')
+        closeDetail()
+      } catch (e) {
+        showToast('删除失败，请重试')
+      }
+    })
+    .catch(() => {})
+}
 
 const quickActions = [
   { label: 'AI 助理', icon: 'sparkles', tint: 'todo', iconColor: 'var(--d-todo-600)', action: () => router.push('/assistant') },

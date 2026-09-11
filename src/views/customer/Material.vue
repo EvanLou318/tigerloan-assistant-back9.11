@@ -136,7 +136,10 @@
       </div>
 
       <div class="merge-card">
-        <div class="merge-material-tag">{{ currentMaterial?.name || '语音口述' }}</div>
+        <div class="merge-material-tag">
+          {{ currentMaterial?.name || '语音口述' }}
+          <span v-if="extractedDemo" class="demo-tag">演示数据 · 非真实识别</span>
+        </div>
         <div
           v-for="field in mergeFields"
           :key="field.key"
@@ -206,8 +209,11 @@ import {
   ocrProperty,
   ocrBusinessLicense,
   asr as asrApi,
+  asrAudio,
   extractFromVoice,
 } from '../../api/ai'
+import { startRecording as launchRecorder } from '../../utils/recorder'
+import { pdfFirstPageToImage, isPdf } from '../../utils/pdfImage'
 
 const route = useRoute()
 const router = useRouter()
@@ -231,8 +237,10 @@ const processingTitle = ref('AI 正在处理...')
 
 const extractedData = ref(null)
 const extractedConfidence = ref(0.9)
+const extractedDemo = ref(false)
 
 let recordTimer = null
+let recorder = null
 
 // ==================== 材料类型定义（含字段映射） ====================
 const materialTypes = [
@@ -277,6 +285,7 @@ const materialTypes = [
     extract: ocrIncomeProof,
     sourceName: '收入证明OCR',
     mapping: [
+      { key: 'name', label: '姓名', from: 'name' },
       { key: 'employer', label: '工作单位', from: 'employer' },
       { key: 'position', label: '职位', from: 'position' },
       { key: 'monthlyIncome', label: '月均收入', from: 'monthlyIncome', type: 'number' },
@@ -364,8 +373,19 @@ async function onFileChange(e) {
   try {
     if (file) {
       // 真实文件上传：经后端 multer 存档 + Provider 识别
+      // PDF（含扫描件）先在浏览器端栅格化成图片再上传，视觉模型不收 PDF 原件；
+      // 转换失败时回退直传原文件（服务端文字版 PDF 仍能抽文本）
+      let upload = file
+      if (isPdf(file)) {
+        try {
+          const { blob, name } = await pdfFirstPageToImage(file)
+          upload = new File([blob], name, { type: 'image/jpeg' })
+        } catch (err) {
+          console.warn('PDF 转图片失败，回退直传：', err)
+        }
+      }
       const fd = new FormData()
-      fd.append('file', file)
+      fd.append('file', upload)
       fd.append('type', material.key)
       const resp = await fetch(`/api/ai/ocr/${material.key}`, {
         method: 'POST',
@@ -383,6 +403,7 @@ async function onFileChange(e) {
     }
     processingTitle.value = `${material.sourceName} 提取中...`
   } catch (err) {
+    showToast(err?.message || '材料识别失败，已切换为演示数据')
     result = await ocrIdCard()
   }
 
@@ -392,12 +413,19 @@ async function onFileChange(e) {
 
   extractedData.value = result.data
   extractedConfidence.value = result.confidence
+  extractedDemo.value = !!result.demo
   buildMergeFields(material.mapping)
   step.value = 'merge'
 }
 
 // ==================== 语音口述 ====================
 async function startRecording() {
+  try {
+    recorder = await launchRecorder()
+  } catch (e) {
+    showToast(`${e.message}，已切换为演示模式`)
+    recorder = null
+  }
   isRecording.value = true
   recordTime.value = 0
   recordTimer = setInterval(() => {
@@ -424,7 +452,27 @@ async function stopRecording() {
     procStep.value++
   }, 700)
 
-  const asrRes = await asrApi()
+  let asrRes
+  try {
+    if (recorder) {
+      const audio = await recorder.stop()
+      recorder = null
+      if (audio) asrRes = await asrAudio({ blob: audio.blob, sampleRate: audio.sampleRate })
+    }
+    if (!asrRes) asrRes = await asrApi()
+  } catch (e) {
+    clearInterval(stepInterval)
+    showToast(e.message || '语音识别失败')
+    step.value = 'voice'
+    return
+  }
+  if (!(asrRes.text || '').trim()) {
+    // 静音/非人声时阿里云返回空串，避免空文本流入大模型
+    clearInterval(stepInterval)
+    showToast('没有听清，请靠近麦克风再说一遍')
+    step.value = 'voice'
+    return
+  }
   asrResult.value = asrRes
   asrConfidence.value = Math.round((asrRes.confidence || 0.9) * 100)
 
@@ -453,6 +501,7 @@ async function extractVoiceData() {
 
   extractedData.value = extracted.data
   extractedConfidence.value = extracted.confidence
+  extractedDemo.value = !!extracted.demo
 
   const voiceMapping = [
     { key: 'name', label: '姓名', from: 'name' },
@@ -479,6 +528,10 @@ function resetVoice() {
   asrResult.value = null
   isRecording.value = false
   recordTime.value = 0
+  if (recorder) {
+    recorder.cancel()
+    recorder = null
+  }
 }
 
 // ==================== 合并确认 ====================
@@ -998,6 +1051,17 @@ onMounted(() => {
   background: var(--secondary-container);
   border-bottom: none;
   font-weight: 500;
+}
+
+.demo-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #B45309;
+  background: #FEF3C7;
 }
 
 .merge-field {

@@ -35,8 +35,22 @@ export function ocrBusinessLicense(text) {
 }
 
 // ---------- ASR：语音转文字 ----------
+// 文本入口（无录音时的演示/兜底链路）
 export function asr(text) {
   return request.post('/ai/asr', { text })
+}
+
+// 音频入口：上传真实录音，交由后端阿里云集语音交互转写。
+// 需走 multipart（字段名 file，与后端 multer 一致），不能用 JSON。
+export function asrAudio({ blob, sampleRate = 16000, text }) {
+  const form = new FormData()
+  form.append('file', blob, 'voice.wav')
+  if (sampleRate) form.append('sampleRate', String(sampleRate))
+  if (text) form.append('text', text)
+  return request.post('/ai/asr', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000,
+  })
 }
 
 // ---------- LLM 结构化提取 ----------
@@ -54,6 +68,16 @@ export function extractCustomerFromVoice(text) {
 // 产品资料 → 结构化产品字段
 export function extractProduct(text) {
   return request.post('/ai/extract/product', { text })
+}
+
+// 产品资料附件（PDF/图片）→ 结构化产品字段，multipart 上传真实文件
+export function extractProductFile(file) {
+  const form = new FormData()
+  form.append('file', file)
+  return request.post('/ai/extract/product', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,
+  })
 }
 
 // 自然语言 → 日程结构化字段

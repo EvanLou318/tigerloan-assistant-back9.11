@@ -29,6 +29,17 @@
       </div>
     </div>
 
+    <!-- 日期范围筛选：快捷区间 + 自定义；生效时在当前 tab 列表上求交集 -->
+    <div class="filter-row">
+      <button class="filter-chip" :class="{ active: quick === 'week' }" @click="applyQuick('week')">近7天</button>
+      <button class="filter-chip" :class="{ active: quick === 'month' }" @click="applyQuick('month')">近30天</button>
+      <button class="filter-chip" :class="{ active: quick === 'custom' }" @click="showCalendar = true">自定义</button>
+      <div v-if="rangeFilter" class="range-badge" @click="clearFilter">
+        {{ rangeLabel }}
+        <span class="range-clear">✕</span>
+      </div>
+    </div>
+
     <!-- 列表 -->
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh" success-text="已更新">
     <SkeletonList v-if="scheduleStore.loading && !refreshing" :count="3" />
@@ -75,82 +86,28 @@
       <AppIcon name="plus" :size="22" color="#FFFFFF" />
     </div>
 
-    <!-- 日程详情底部面板 -->
-    <van-popup v-model:show="showDetail" position="bottom" round class="detail-popup">
-      <template v-if="detailItem">
-        <div class="dp-handle"></div>
-        <div class="dp-head">
-          <div class="dp-title">
-            <span class="dp-type" v-html="typeIcon(detailItem.type)"></span>
-            <span class="dp-title-text">{{ detailItem.title }}</span>
-          </div>
-          <AppIcon name="close" class="dp-close" @click="showDetail = false" />
-        </div>
-
-        <div class="dp-tags">
-          <span class="dp-tag" :class="`dp-tag-${detailItem.priority}`">{{ detailItem.priority === 'P0' ? '紧急 P0' : detailItem.priority === 'P1' ? '普通 P1' : '低优 P2' }}</span>
-          <span class="dp-tag dp-tag-type">{{ typeLabel[detailItem.type] || '待办' }}</span>
-          <span class="dp-tag" :class="detailItem.done ? 'dp-tag-done' : 'dp-tag-open'">
-            <AppIcon :name="detailItem.done ? 'check-circle' : 'clock'" :size="12" />
-            {{ detailItem.done ? '已完成' : '未完成' }}
-          </span>
-        </div>
-
-        <div class="dp-info">
-          <div class="dp-row">
-            <AppIcon name="clock" class="dp-ic" />
-            <span class="dp-lbl">时间</span>
-            <span class="dp-val">{{ formatFullDate(detailItem.startTime) }} - {{ formatTime(detailItem.endTime) }}</span>
-          </div>
-          <div class="dp-row" v-if="detailItem.location">
-            <AppIcon name="map-pin" class="dp-ic" />
-            <span class="dp-lbl">地点</span>
-            <span class="dp-val">{{ detailItem.location }}</span>
-          </div>
-          <div class="dp-row" v-if="detailItem.customerName">
-            <AppIcon name="user" class="dp-ic" />
-            <span class="dp-lbl">客户</span>
-            <span class="dp-val">{{ detailItem.customerName }}</span>
-          </div>
-          <div class="dp-row" v-if="detailItem.reminderTime">
-            <AppIcon name="bell" class="dp-ic" />
-            <span class="dp-lbl">提醒</span>
-            <span class="dp-val">提前 {{ getReminderOffset(detailItem.reminderTime, detailItem.startTime) }}</span>
-          </div>
-          <div class="dp-row dp-row-note" v-if="detailItem.remark">
-            <AppIcon name="file-text" class="dp-ic" />
-            <span class="dp-lbl">备注</span>
-            <span class="dp-val">{{ detailItem.remark }}</span>
-          </div>
-        </div>
-
-        <div class="dp-actions">
-          <van-button
-            v-if="!detailItem.done"
-            round block type="primary"
-            :loading="acting"
-            loading-text="处理中..."
-            @click="markDone(detailItem)"
-          >
-            <AppIcon name="check-circle" /> 标记完成
-          </van-button>
-          <van-button
-            v-else
-            round block
-            class="dp-restore"
-            :loading="acting"
-            loading-text="处理中..."
-            @click="markDone(detailItem)"
-          >
-            <AppIcon name="refresh" /> 恢复未完成
-          </van-button>
-          <van-button plain round block class="dp-delete" @click="confirmDelete(detailItem)">删除日程</van-button>
-        </div>
-      </template>
-    </van-popup>
+    <!-- 日程详情底部面板（与首页共用组件） -->
+    <ScheduleDetailPopup
+      v-model:show="showDetail"
+      :item="detailItem"
+      :acting="acting"
+      @toggle="markDone"
+      @delete="confirmDelete"
+    />
 
     <!-- 新建日程方式选择 -->
     <ScheduleMethodSheet v-model:show="showMethodSheet" />
+
+    <!-- 自定义日期范围：保留 Vant 默认预选（今天~明天），保证打开即定位当前月 -->
+    <van-calendar
+      v-model:show="showCalendar"
+      type="range"
+      title="选择日期范围"
+      :min-date="calendarMin"
+      :max-date="calendarMax"
+      teleport="body"
+      @confirm="onCalendarConfirm"
+    />
     </div>
   </MainLayout>
 </template>
@@ -164,6 +121,7 @@ import { useScheduleStore } from '../../stores/schedule'
 import MainLayout from '../../layouts/MainLayout.vue'
 import SkeletonList from '../../components/SkeletonList.vue'
 import ScheduleMethodSheet from '../../components/ScheduleMethodSheet.vue'
+import ScheduleDetailPopup from '../../components/ScheduleDetailPopup.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -238,8 +196,74 @@ const userInfo = authStore.userInfo
 
 const displayList = computed(() => {
   const list = scheduleStore.displaySchedules
-  // 按日期分组，这里只展示分组的连续列表
-  return list
+  // 日期范围筛选：以日程开始时间落在 [start, end] 内为准
+  if (!rangeFilter.value) return list
+  const { start, end } = rangeFilter.value
+  return list.filter((s) => {
+    if (!s.startTime) return false
+    const t = new Date(s.startTime)
+    return t >= start && t <= end
+  })
+})
+
+// ---------- 日期范围筛选 ----------
+const rangeFilter = ref(null) // { start: Date, end: Date } | null
+const quick = ref('') // 'week' | 'month' | 'custom' | ''
+const showCalendar = ref(false)
+const calendarMin = (() => {
+  const d = new Date()
+  d.setFullYear(d.getFullYear() - 1)
+  return d
+})()
+const calendarMax = (() => {
+  const d = new Date()
+  d.setFullYear(d.getFullYear() + 1)
+  return d
+})()
+
+function applyQuick(kind) {
+  // 再点一次同一个快捷区间 = 取消筛选
+  if (quick.value === kind) {
+    clearFilter()
+    return
+  }
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(end.getDate() + (kind === 'week' ? 7 : 30))
+  end.setHours(23, 59, 59, 999)
+  rangeFilter.value = { start, end }
+  quick.value = kind
+  // 「今日」tab 语义上已固定为今天，选了范围后切到「全部」才看得全
+  if (scheduleStore.activeTab === 'today') scheduleStore.activeTab = 'all'
+}
+
+function onCalendarConfirm(range) {
+  const [a, b] = range || []
+  // 范围不完整（只选了起点就点确认）时直接关闭，不改动现有筛选
+  if (!a || !b) {
+    showCalendar.value = false
+    return
+  }
+  const start = new Date(a)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(b)
+  end.setHours(23, 59, 59, 999)
+  rangeFilter.value = { start, end }
+  quick.value = 'custom'
+  showCalendar.value = false
+  if (scheduleStore.activeTab === 'today') scheduleStore.activeTab = 'all'
+}
+
+function clearFilter() {
+  rangeFilter.value = null
+  quick.value = ''
+}
+
+const rangeLabel = computed(() => {
+  if (!rangeFilter.value) return ''
+  const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}`
+  return `${fmt(rangeFilter.value.start)} ~ ${fmt(rangeFilter.value.end)}`
 })
 
 const hour = new Date().getHours()
@@ -252,6 +276,7 @@ const greetingText = computed(() => {
 })
 
 const emptyText = computed(() => {
+  if (rangeFilter.value) return '所选日期范围内暂无日程'
   if (scheduleStore.activeTab === 'today') return '今日暂无日程，享受轻松的一天'
   if (scheduleStore.activeTab === 'done') return '还没有完成的日程'
   return '没有待办日程，点击下方按钮新建'
@@ -298,15 +323,6 @@ function metaText(item) {
   return parts.join(' · ')
 }
 
-function formatFullDate(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()]
-  return `${d.getMonth() + 1}月${d.getDate()}日 ${week} ${d.toTimeString().slice(0, 5)}`
-}
-
-const typeLabel = { task: '待办', call: '通话', meeting: '面谈' }
-
 const now = Date.now()
 function isOverdue(item) {
   return !item.done && item.endTime && new Date(item.endTime).getTime() < now
@@ -319,9 +335,12 @@ function getReminderOffset(reminderIso, startIso) {
   return `${Math.round(mins / 1440)} 天`
 }
 
+const typeLabel = { task: '待办', call: '通话', meeting: '面谈' }
+
+// 日程类型图标：内联 SVG，颜色与「功能域色板」一致
 function typeIcon(type) {
-  if (type === 'call') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 15.5C18.8 15.5 17.5 15.3 16.4 14.9C16 14.7 15.5 14.8 15.2 15.1L13.5 16.8C11.3 15.7 9.2 13.6 8.1 11.4L9.8 9.7C10.1 9.4 10.2 8.9 10 8.5C9.6 7.4 9.4 6.1 9.4 4.9C9.4 4.4 8.9 4 4.9 4H4.9C4.4 4 4 4.4 4 4.9C4 13.8 11.1 21 20 21C20.5 21 21 20.6 21 20.1V16.6C21 16.1 20.6 15.5 20 15.5Z" fill="#0EA5A5"/></svg>'
-  if (type === 'meeting') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 12C14.2 12 16 10.2 16 8C16 5.8 14.2 4 12 4C9.8 4 8 5.8 8 8C8 10.2 9.8 12 12 12ZM12 14C8.7 14 2 15.7 2 19V21H22V19C22 15.7 15.3 14 12 14Z" fill="#7C6CF0"/></svg>'
+  if (type === 'call') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 15.5C18.8 15.5 17.5 15.3 16.4 14.9C16 14.7 15.5 14.8 15.2 15.1L13.5 16.8C11.3 15.7 9.2 13.6 8.1 11.4L9.8 9.7C10.1 9.4 10.2 8.9 10 8.5C9.6 7.4 9.4 6.1 9.4 4.9C9.4 4.4 8.9 4 4.9 4H4.9C4.4 4 4 4.4 4 4.9C4 13.8 11.1 21 20 21C20.5 21 21 20.6 21 20.1V16.6C21 16.1 20.6 15.5 20 15.5Z" fill="#378ADD"/></svg>'
+  if (type === 'meeting') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 12C14.2 12 16 10.2 16 8C16 5.8 14.2 4 12 4C9.8 4 8 5.8 8 8C8 10.2 9.8 12 12 12ZM12 14C8.7 14 2 15.7 2 19V21H22V19C22 15.7 15.3 14 12 14Z" fill="#7F77DD"/></svg>'
   return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 16.2L4.8 12L3.4 13.4L9 19L21 7L19.6 5.6L9 16.2Z" fill="#2563EB"/></svg>'
 }
 </script>
@@ -399,6 +418,52 @@ function typeIcon(type) {
 .tab-item:not(.active) .tab-count {
   background: var(--bg-input);
   color: var(--text-tertiary);
+}
+
+/* 日期范围筛选行 */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex-shrink: 0;
+  border: none;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: all 0.2s;
+}
+.filter-chip.active {
+  background: var(--d-schedule-50);
+  color: var(--d-schedule-800);
+  font-weight: 600;
+}
+.range-badge {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d-schedule-800);
+  background: var(--d-schedule-50);
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.range-clear {
+  font-size: 11px;
+  color: var(--d-schedule-600);
 }
 
 /* 列表 */
@@ -577,105 +642,4 @@ function typeIcon(type) {
   z-index: 10;
 }
 .fab:active { transform: scale(0.95); }
-
-/* ============ 日程详情底部面板 ============ */
-.detail-popup {
-  background: var(--surface-container-lowest);
-  border-radius: 20px 20px 0 0;
-  padding: 10px 20px calc(24px + env(safe-area-inset-bottom));
-  max-height: 82vh;
-  overflow-y: auto;
-}
-.dp-handle {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--surface-container-high);
-  margin: 0 auto 12px;
-}
-.dp-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.dp-title {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.4;
-}
-.dp-title-text { word-break: break-all; }
-.dp-type { display: inline-flex; flex-shrink: 0; transform: scale(1.3); transform-origin: center; }
-.dp-close {
-  flex-shrink: 0;
-  color: var(--text-tertiary);
-  padding: 4px;
-  margin: -4px;
-  cursor: pointer;
-}
-.dp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-.dp-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 999px;
-  color: var(--text-secondary);
-  background: var(--surface-container-high);
-}
-.dp-tag-P0 { background: var(--danger-container); color: var(--on-danger-container); }
-.dp-tag-P1 { background: var(--primary-container); color: var(--on-primary-container); }
-.dp-tag-P2 { background: var(--surface-container-high); color: var(--text-secondary); }
-.dp-tag-type { background: var(--surface-container-high); color: var(--text-secondary); }
-.dp-tag-done { background: rgba(16, 185, 129, 0.14); color: #059669; }
-.dp-tag-open { background: rgba(37, 99, 235, 0.12); color: var(--color-primary); }
-
-.dp-info {
-  background: var(--surface-container);
-  border-radius: 14px;
-  padding: 4px 14px;
-  margin-bottom: 16px;
-}
-.dp-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 11px 0;
-  font-size: 13px;
-}
-.dp-row + .dp-row { border-top: 1px solid var(--surface-container-high); }
-.dp-ic { color: var(--color-primary); margin-top: 2px; flex-shrink: 0; }
-.dp-lbl {
-  width: 32px;
-  flex-shrink: 0;
-  color: var(--text-tertiary);
-  line-height: 1.6;
-}
-.dp-val {
-  flex: 1;
-  min-width: 0;
-  color: var(--text-primary);
-  line-height: 1.6;
-  word-break: break-all;
-}
-.dp-row-note .dp-val { white-space: pre-wrap; }
-
-.dp-actions { display: flex; flex-direction: column; gap: 10px; }
-.dp-restore {
-  border: 1px solid rgba(16, 185, 129, 0.5);
-  color: #059669;
-  background: #fff;
-}
-.dp-delete {
-  color: var(--color-danger);
-  border-color: rgba(239, 68, 68, 0.35);
-}
 </style>

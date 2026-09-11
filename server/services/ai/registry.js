@@ -139,8 +139,13 @@ export function getCategoryRuntime(category) {
 }
 
 // ---------- 真实调用：OpenAI 兼容协议 LLM ----------
-// real.js 各 LLM 能力统一走这里；未配置时抛出明确错误
-export async function callLLM(messages, options = {}) {
+// real.js 各 LLM 能力统一走这里；未配置时抛出明确错误。
+async function chatCompletion(messages, options = {}) {
+  if (String(options.model || '').includes('vision') || messages.some((m) => Array.isArray(m.content))) {
+    const u = messages.find((m) => Array.isArray(m.content))
+    const img = u?.content?.find((b) => b.type === 'image_url')
+    console.log('[vision-debug] model=%s urlLen=%s urlType=%s', options.model, img?.image_url?.url?.length, typeof img?.image_url?.url)
+  }
   const { provider } = getCategoryRuntime('llm')
   if (!provider) {
     throw new Error('大模型服务未配置：请在管理后台「三方服务」中添加并启用 LLM 供应商')
@@ -158,7 +163,7 @@ export async function callLLM(messages, options = {}) {
       temperature: options.temperature ?? 0.2,
       ...(options.responseFormat ? { response_format: options.responseFormat } : {}),
     }),
-    signal: AbortSignal.timeout(options.timeout || 30000),
+    signal: AbortSignal.timeout(options.timeout || 60000),
   })
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
@@ -166,4 +171,28 @@ export async function callLLM(messages, options = {}) {
   }
   const json = await res.json()
   return json.choices?.[0]?.message?.content ?? ''
+}
+
+export async function callLLM(messages, options = {}) {
+  return chatCompletion(messages, options)
+}
+
+// 视觉调用：OpenAI 兼容 image_url 块（DeepSeek 用 deepseek-v4-flash-vision-exp，
+// 可在供应商 extra.visionModel 里覆盖模型名）。图片只能出现在 user 消息中。
+export async function callLLMVision({ system, text, imageDataUrl, temperature = 0.1 }) {
+  const { provider } = getCategoryRuntime('llm')
+  const messages = [
+    { role: 'system', content: system },
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text },
+        { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } },
+      ],
+    },
+  ]
+  return chatCompletion(messages, {
+    model: provider?.extra?.visionModel || 'deepseek-v4-flash-vision-exp',
+    temperature,
+  })
 }

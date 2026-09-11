@@ -11,6 +11,7 @@ export async function ocrIdCard() {
   await delay(2500)
   return {
     success: true,
+    demo: true,
     data: {
       name: '张明',
       idNumber: '310115199201011234',
@@ -33,6 +34,7 @@ export async function ocrBankStatement() {
   await delay(3000)
   return {
     success: true,
+    demo: true,
     data: {
       bank: '招商银行',
       monthlyAvgIncome: 15320,
@@ -55,6 +57,7 @@ export async function ocrCreditReport() {
   await delay(3500)
   return {
     success: true,
+    demo: true,
     data: {
       queryCount1m: 2,
       queryCount3m: 5,
@@ -79,6 +82,7 @@ export async function ocrIncomeProof() {
   await delay(2500)
   return {
     success: true,
+    demo: true,
     data: {
       employer: '上海某科技有限公司',
       position: '产品经理',
@@ -95,6 +99,7 @@ export async function ocrSocialSecurity() {
   await delay(2800)
   return {
     success: true,
+    demo: true,
     data: {
       employer: '上海某科技有限公司',
       housingFundBase: 3500,
@@ -111,6 +116,7 @@ export async function ocrProperty() {
   await delay(3000)
   return {
     success: true,
+    demo: true,
     data: {
       propertyValue: 280,
       propertyArea: 89.5,
@@ -127,6 +133,7 @@ export async function ocrBusinessLicense() {
   await delay(2600)
   return {
     success: true,
+    demo: true,
     data: {
       employer: '上海某科技有限公司',
       position: '法定代表人',

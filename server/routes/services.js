@@ -15,6 +15,7 @@ import {
   getActiveProvider,
   callLLM,
 } from '../services/ai/registry.js'
+import * as aliyun from '../services/ai/aliyun.js'
 
 const router = Router()
 
@@ -34,7 +35,19 @@ function maskKey(key) {
   return `${key.slice(0, 4)}****${key.slice(-4)}`
 }
 
+// ---------- extra 扩展字段 ----------
+// extra 存厂商特有参数，当前用于阿里云 ASR 的 appkey。
+// 输出时同样脱敏：appkey 与 AccessToken 都属于可直接调接口的凭证。
+function safeExtra(text) {
+  try {
+    return JSON.parse(text || '{}')
+  } catch {
+    return {}
+  }
+}
+
 function rowOut(r) {
+  const extra = safeExtra(r.extra)
   return {
     id: r.id,
     category: r.category,
@@ -45,6 +58,10 @@ function rowOut(r) {
     hasKey: !!r.api_key,
     hasSecret: !!r.secret_key,
     model: r.model,
+    appKeyMasked: extra.appkey ? maskKey(extra.appkey) : '',
+    hasAppKey: !!extra.appkey,
+    // 视觉模型名（非凭证，明文展示，用于图片/材料识别）
+    visionModel: extra.visionModel || '',
     enabled: !!r.enabled,
     isDefault: !!r.is_default,
     remark: r.remark,
@@ -90,6 +107,9 @@ router.post('/', requirePerm('admin.services.manage'), wrap(async (req, res) => 
   if (category === 'llm' && isDefault && !apiKey) {
     throw new BizError('设为默认的 LLM 供应商必须填写 API Key')
   }
+  if (category === 'asr' && providerType === 'aliyun' && !b.appkey) {
+    throw new BizError('阿里云 ASR 必须填写 AppKey')
+  }
 
   const now = fmtDateTime()
   const setDefault = isDefault && apiKey ? 1 : 0
@@ -97,9 +117,9 @@ router.post('/', requirePerm('admin.services.manage'), wrap(async (req, res) => 
     db.prepare('UPDATE service_providers SET is_default = 0 WHERE category = ?').run(category)
   }
   const info = db
-    .prepare(`INSERT INTO service_providers (category, name, provider_type, base_url, api_key, secret_key, model, enabled, is_default, remark, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(category, name.trim(), providerType || 'custom', baseUrl || '', apiKey || '', secretKey || '', model || '', enabled === false ? 0 : 1, setDefault, remark || '', now, now)
+    .prepare(`INSERT INTO service_providers (category, name, provider_type, base_url, api_key, secret_key, model, extra, enabled, is_default, remark, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(category, name.trim(), providerType || 'custom', baseUrl || '', apiKey || '', secretKey || '', model || '', JSON.stringify({ appkey: b.appkey || '', ...(b.visionModel ? { visionModel: b.visionModel.trim() } : {}) }), enabled === false ? 0 : 1, setDefault, remark || '', now, now)
   writeAudit(req, 'service.create', `${name.trim()}（${category}）`, `类型 ${providerType || 'custom'}${setDefault ? '，已设为默认' : ''}`)
   ok(res, { id: info.lastInsertRowid })
 }))
@@ -126,7 +146,15 @@ router.put('/:id', requirePerm('admin.services.manage'), wrap(async (req, res) =
   }
   // 取消默认时至少保证不出现"全无默认"导致配置失效——允许，运行时会回退 mock
 
-  db.prepare(`UPDATE service_providers SET name = ?, provider_type = ?, base_url = ?, api_key = ?, secret_key = ?, model = ?, enabled = ?, is_default = ?, remark = ?, updated_at = ? WHERE id = ?`)
+  // extra 合并写入：只更新传了 appkey / visionModel 的情况，留空保持原值
+  const curExtra = safeExtra(row.extra)
+  const nextExtra = JSON.stringify({
+    ...curExtra,
+    ...(b.appkey !== undefined ? { appkey: b.appkey } : {}),
+    ...(b.visionModel !== undefined ? { visionModel: b.visionModel.trim() } : {}),
+  })
+
+  db.prepare(`UPDATE service_providers SET name = ?, provider_type = ?, base_url = ?, api_key = ?, secret_key = ?, model = ?, extra = ?, enabled = ?, is_default = ?, remark = ?, updated_at = ? WHERE id = ?`)
     .run(
       b.name !== undefined ? b.name.trim() : row.name,
       b.providerType || row.provider_type,
@@ -134,6 +162,7 @@ router.put('/:id', requirePerm('admin.services.manage'), wrap(async (req, res) =
       nextKey,
       nextSecret,
       b.model !== undefined ? b.model : row.model,
+      nextExtra,
       nextEnabled,
       nextDefault,
       b.remark !== undefined ? b.remark : row.remark,
@@ -194,7 +223,27 @@ router.post('/:id/test', requirePerm('admin.services.view'), wrap(async (req, re
       return ok(res, { pass: false, message: `HTTP ${resp.status}：${detail.slice(0, 120)}` })
     }
 
-    // OCR / ASR：探测 base_url 可达性（厂商 SDK 未接入前的基本校验）
+    // ASR：阿里云智能语音交互已接入，做真实鉴权校验
+    if (row.category === 'asr' && row.provider_type === 'aliyun') {
+      const appkey = safeExtra(row.extra).appkey
+      if (!appkey) return ok(res, { pass: false, message: '未配置 AppKey' })
+      const started = Date.now()
+      await aliyun.ping({ token: row.api_key, appkey, endpoint: row.base_url || undefined })
+      return ok(res, {
+        pass: true,
+        message: `阿里云鉴权通过（${Date.now() - started}ms）。AccessToken 为控制台临时凭证，约 24 小时后失效，届时请在此重新更新。`,
+      })
+    }
+
+    // OCR / 其它厂商 ASR：探测 base_url 可达性（厂商 SDK 未接入前的基本校验）
+    if (row.category === 'ocr') {
+      return ok(res, {
+        pass: !!row.base_url || !!row.api_key,
+        message: row.base_url
+          ? `凭证与地址已配置。注意：${row.provider_type} 类型的 OCR 调用尚未在代码中接入，配置后材料识别会以演示数据代替并明确标注`
+          : '凭证已配置。注意：OCR 厂商调用尚未在代码中接入，配置后材料识别会以演示数据代替并明确标注',
+      })
+    }
     if (row.base_url) {
       const started = Date.now()
       const resp = await fetch(row.base_url, { method: 'HEAD', signal: AbortSignal.timeout(10000) }).catch(() => null)

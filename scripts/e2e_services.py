@@ -110,12 +110,12 @@ screenshot("admin_services_modal.png")
 if not str(val).startswith("OK"):
     errors.append("modal: " + str(val))
 
-# 3. 已配置供应商的"真实调用"态（API 预置一条演示数据后刷新）
+# 3. 已配置供应商的"真实调用"态（对库里真实存在的默认供应商断言）
 goto("/admin/services", wait=3,
      check="""(() => {
         const t = document.body.innerText;
         if (!t.includes('真实调用')) return 'FAIL: 未出现真实调用徽标';
-        if (!t.includes('演示供应商')) return 'FAIL: 未渲染演示供应商行';
+        if (!t.includes('DeepSeek')) return 'FAIL: 未渲染 DeepSeek 供应商行';
         if (!t.includes('sk-d****')) return 'FAIL: API Key 未脱敏显示';
         return 'OK: 真实调用态 + key脱敏';
      })()""",

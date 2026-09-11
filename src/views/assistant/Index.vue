@@ -203,7 +203,14 @@ async function send(preset) {
   pushMsg('user', text)
   thinking.value = true
 
-  const result = await assistantReply(text)
+  let result
+  try {
+    result = await assistantReply(text)
+  } catch (e) {
+    thinking.value = false
+    pushMsg('ai', e.message || 'AI 助理暂时无法响应，请稍后再试')
+    return
+  }
   thinking.value = false
 
   switch (result.intent) {
@@ -297,6 +304,12 @@ function handleProductCreate(e) {
 
 /* ============ 日程创建 ============ */
 function handleScheduleCreate(e, reply) {
+  // 时间/标题解析失败时不要生成废数据卡片，引导用户换个说法
+  const startOk = e.startTime && !Number.isNaN(new Date(e.startTime).getTime())
+  if (!e.title || !startOk) {
+    pushMsg('ai', '时间信息没有解析清楚，请换个说法再试，例如："明天下午3点与张总面谈"')
+    return
+  }
   // 关联客户匹配
   let customerName = e.customerName || ''
   let customerId = null

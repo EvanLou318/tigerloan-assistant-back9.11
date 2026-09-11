@@ -12,14 +12,16 @@ import { realProvider } from './real.js'
 import { getCategoryRuntime } from './registry.js'
 
 // 每个能力归属的三方服务分类
+// 注意：7 个材料 OCR 走 LLM 视觉模型（deepseek-v4-flash-vision-exp），
+// 依赖 llm 分类的供应商配置而非 ocr 分类 —— ocr 分类留给未来专用 OCR 厂商。
 const METHOD_CATEGORY = {
-  ocrIdCard: 'ocr',
-  ocrBankStatement: 'ocr',
-  ocrCreditReport: 'ocr',
-  ocrIncomeProof: 'ocr',
-  ocrSocialSecurity: 'ocr',
-  ocrProperty: 'ocr',
-  ocrBusinessLicense: 'ocr',
+  ocrIdCard: 'llm',
+  ocrBankStatement: 'llm',
+  ocrCreditReport: 'llm',
+  ocrIncomeProof: 'llm',
+  ocrSocialSecurity: 'llm',
+  ocrProperty: 'llm',
+  ocrBusinessLicense: 'llm',
   asr: 'asr',
   extractFromVoice: 'llm',
   extractCustomerFromVoice: 'llm',

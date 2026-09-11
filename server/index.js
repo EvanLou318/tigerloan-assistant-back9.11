@@ -39,7 +39,26 @@ app.use(cors())
 app.use(express.json({ limit: '20mb' }))
 
 // 上传文件静态服务
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '7d' }))
+// 安全策略：
+//   1) nosniff  —— 禁止浏览器嗅探 MIME，避免伪装成图片的文件被按脚本执行
+//   2) CSP sandbox —— 万一混入 html/svg，也禁止其执行脚本、访问同源 Cookie
+//   3) 非图片类（PDF/音频）强制下载语义，不在浏览器内联渲染
+// 配合 routes/ai.js 的扩展名 + MIME 白名单，形成上传侧与下发侧双重防护。
+const UPLOADS_DIR = path.join(__dirname, 'uploads')
+const INLINE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic'])
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; sandbox")
+    const ext = path.extname(req.path || '').toLowerCase()
+    if (!INLINE_EXT.has(ext)) {
+      res.setHeader('Content-Disposition', 'attachment')
+    }
+    next()
+  },
+  express.static(UPLOADS_DIR, { maxAge: '7d', index: false, dotfiles: 'deny' })
+)
 
 // ---------- API 路由 ----------
 app.use('/api/auth', authRoutes)

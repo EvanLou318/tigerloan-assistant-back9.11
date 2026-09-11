@@ -40,6 +40,7 @@
             <th>Base URL</th>
             <th v-if="g.needsModel">模型</th>
             <th>API Key</th>
+            <th v-if="g.category === 'asr'">AppKey</th>
             <th>状态</th>
             <th style="width: 260px">操作</th>
           </tr>
@@ -52,8 +53,12 @@
             </td>
             <td><code class="ptype">{{ p.providerType }}</code></td>
             <td class="mono url-cell">{{ p.baseUrl || '—' }}</td>
-            <td v-if="g.needsModel" class="mono">{{ p.model || '—' }}</td>
+            <td v-if="g.needsModel" class="mono">
+              {{ p.model || '—' }}
+              <div v-if="p.visionModel" class="vision-sub">视觉: {{ p.visionModel }}</div>
+            </td>
             <td class="mono">{{ p.apiKeyMasked || '未配置' }}</td>
+            <td v-if="g.category === 'asr'" class="mono">{{ p.appKeyMasked || '—' }}</td>
             <td>
               <span class="status" :class="p.enabled ? 'on' : 'off'">{{ p.enabled ? '启用' : '停用' }}</span>
             </td>
@@ -78,6 +83,22 @@
       <div class="modal">
         <h3>{{ form.id ? '编辑供应商' : `添加${formCategoryName}供应商` }}</h3>
 
+        <!-- 常用服务商预设：点击自动填充技术参数，用户只需填 API Key -->
+        <div class="form-item" v-if="presets.length">
+          <label>常用服务商（点击自动填充）</label>
+          <div class="type-picker">
+            <button
+              v-for="ps in presets"
+              :key="ps.name"
+              class="type-opt"
+              :class="{ active: presetName === ps.name }"
+              @click="applyPreset(ps)"
+            >
+              {{ ps.name }}
+            </button>
+          </div>
+        </div>
+
         <div class="form-item">
           <label>名称 <i>*</i></label>
           <input v-model="form.name" placeholder="如：通义千问 / 腾讯云 OCR" />
@@ -91,7 +112,7 @@
               :key="t"
               class="type-opt"
               :class="{ active: form.providerType === t }"
-              @click="form.providerType = t"
+              @click="changeType(t)"
             >
               {{ typeLabel(t) }}
             </button>
@@ -100,13 +121,30 @@
 
         <div class="form-item">
           <label>Base URL</label>
-          <input v-model="form.baseUrl" :placeholder="form.category === 'llm' ? 'https://api.openai.com/v1' : 'https://ocr.example.com'" />
+          <input v-model="form.baseUrl" :placeholder="baseUrlPlaceholder" />
           <p class="hint" v-if="form.category === 'llm'">OpenAI 兼容协议，末尾无需 /chat/completions</p>
+          <p class="hint" v-else-if="form.category === 'asr' && form.providerType === 'aliyun'">
+            留空使用默认公网网关 nls-gateway-cn-shanghai.aliyuncs.com；走 VPC 或换地域时填完整识别地址。
+          </p>
         </div>
 
         <div class="form-item">
           <label>API Key <i v-if="!form.id">*</i></label>
           <input v-model="form.apiKey" type="password" :placeholder="form.id ? '留空则保持不变' : '服务商控制台获取'" />
+          <p class="hint" v-if="currentPreset?.keyHint">
+            {{ currentPreset.keyHint }}
+            <a v-if="currentPreset.consoleUrl" :href="currentPreset.consoleUrl" target="_blank" rel="noopener" class="hint-link">去获取 ↗</a>
+          </p>
+          <p class="hint" v-else-if="form.category === 'asr' && form.providerType === 'aliyun'">
+            阿里云填 <b>AccessToken</b>。控制台临时 Token 有效期约 24 小时，失效后请回此处更新。
+          </p>
+        </div>
+
+        <!-- 阿里云语音：AppKey 是必需参数，与 Token 配套使用 -->
+        <div class="form-item" v-if="form.category === 'asr' && form.providerType === 'aliyun'">
+          <label>AppKey <i>*</i></label>
+          <input v-model="form.appkey" placeholder="阿里云智能语音交互项目 AppKey" />
+          <p class="hint">在「智能语音交互控制台 - 项目管理」中创建项目后获取，决定识别的语种与场景模型。</p>
         </div>
 
         <div class="form-item" v-if="form.category !== 'llm'">
@@ -116,7 +154,14 @@
 
         <div class="form-item" v-if="form.category === 'llm'">
           <label>模型</label>
-          <input v-model="form.model" placeholder="如 gpt-4o-mini / qwen-plus / deepseek-chat" />
+          <input v-model="form.model" :placeholder="currentPreset?.model || '如 gpt-4o-mini / qwen-plus / deepseek-chat'" />
+        </div>
+
+        <!-- 视觉模型：客户材料 / 产品图片识别使用，普通 OpenAI 兼容厂商均可配置 -->
+        <div class="form-item" v-if="form.category === 'llm' && form.providerType === 'openai-compatible'">
+          <label>视觉模型（图片识别用，可选）</label>
+          <input v-model="form.visionModel" :placeholder="visionModelPlaceholder" />
+          <p class="hint">上传图片 / 扫描件 / PDF 时走该模型识别文字，需厂商提供图片输入能力；留空使用内置默认。</p>
         </div>
 
         <div class="form-item">
@@ -135,7 +180,8 @@
 
         <div class="modal-actions">
           <button class="btn ghost" @click="showForm = false">取消</button>
-          <button class="btn primary" :disabled="saving" @click="save">{{ saving ? '保存中...' : '保存' }}</button>
+          <button class="btn ghost" :disabled="saving" @click="save(false)">{{ saving ? '保存中...' : '仅保存' }}</button>
+          <button class="btn primary" :disabled="saving" @click="save(true)">{{ saving ? '测试中...' : '保存并测试连通' }}</button>
         </div>
       </div>
     </div>
@@ -184,6 +230,90 @@ const TYPE_LABELS = {
 }
 const typeLabel = (t) => TYPE_LABELS[t] || t
 
+// ---------- 常用服务商预设 ----------
+// 让非技术用户点一下就填好 baseUrl / 模型名等参数，只需再去控制台拿 API Key。
+// keyHint 写清"去哪拿凭证"，consoleUrl 给直达链接。
+const PRESETS = {
+  llm: {
+    'openai-compatible': [
+      {
+        name: 'DeepSeek',
+        baseUrl: 'https://api.deepseek.com/v1',
+        model: 'deepseek-chat',
+        visionModel: 'deepseek-v4-flash-vision-exp',
+        consoleUrl: 'https://platform.deepseek.com/api_keys',
+        keyHint: '登录 DeepSeek 开放平台 →「API Keys」→ 创建，sk- 开头',
+      },
+      {
+        name: '月之暗面 Kimi',
+        baseUrl: 'https://api.moonshot.cn/v1',
+        model: 'moonshot-v1-8k',
+        visionModel: '',
+        consoleUrl: 'https://platform.moonshot.cn/console/api-keys',
+        keyHint: 'Kimi 开放平台 →「API Key 管理」创建',
+      },
+      {
+        name: '智谱 GLM',
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        model: 'glm-4-air',
+        visionModel: '',
+        consoleUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
+        keyHint: '智谱开放平台 →「API Keys」创建',
+      },
+      {
+        name: '通义千问',
+        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        model: 'qwen-plus',
+        visionModel: '',
+        consoleUrl: 'https://bailian.console.aliyun.com/?apiKey=1',
+        keyHint: '阿里云百炼控制台 →「API-KEY 管理」创建',
+      },
+      {
+        name: 'OpenAI',
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-4o-mini',
+        visionModel: '',
+        consoleUrl: 'https://platform.openai.com/api-keys',
+        keyHint: 'OpenAI 平台 →「API Keys」创建（需境外支付方式）',
+      },
+    ],
+  },
+  asr: {
+    aliyun: [
+      {
+        name: '阿里云智能语音交互',
+        baseUrl: '',
+        model: '',
+        consoleUrl: 'https://nls-portal.console.aliyun.com/',
+        keyHint: 'AccessToken 在「智能语音交互」首页创建（约 24 小时有效，过期后回此处更新）；AppKey 在「全部项目」中查看',
+      },
+    ],
+  },
+}
+
+const presetName = ref('')
+
+const presets = computed(() => {
+  const f = form.value
+  return PRESETS[f.category]?.[f.providerType] || []
+})
+
+const currentPreset = computed(() => presets.value.find((p) => p.name === presetName.value) || null)
+
+const visionModelPlaceholder = computed(
+  () => currentPreset.value?.visionModel || '留空用内置默认 deepseek-v4-flash-vision-exp'
+)
+
+function applyPreset(ps) {
+  const f = form.value
+  presetName.value = ps.name
+  // 名称仅在为空或已是某个预设名时跟随，避免覆盖用户自定义命名
+  if (!f.name?.trim() || presets.value.some((p) => p.name === f.name)) f.name = ps.name
+  f.baseUrl = ps.baseUrl || ''
+  f.model = ps.model || ''
+  f.visionModel = ps.visionModel || ''
+}
+
 async function load() {
   loading.value = true
   loadError.value = ''
@@ -196,6 +326,11 @@ async function load() {
   }
 }
 
+function changeType(t) {
+  form.value.providerType = t
+  presetName.value = ''
+}
+
 function openCreate(g) {
   form.value = {
     id: 0,
@@ -206,12 +341,15 @@ function openCreate(g) {
     apiKey: '',
     secretKey: '',
     model: '',
+    visionModel: '',
+    appkey: '',
     remark: '',
     enabled: true,
     isDefault: false,
   }
   formTypes.value = g.providerTypes || ['custom']
   formCategoryName.value = g.name
+  presetName.value = ''
   showForm.value = true
 }
 
@@ -225,35 +363,63 @@ function openEdit(p, g) {
     apiKey: '',
     secretKey: '',
     model: p.model,
+    visionModel: p.visionModel || '',
+    appkey: '',
     remark: p.remark,
     enabled: p.enabled,
     isDefault: p.isDefault,
   }
   formTypes.value = g.providerTypes || ['custom']
   formCategoryName.value = g.name
+  presetName.value = ''
   showForm.value = true
 }
 
-async function save() {
+const baseUrlPlaceholder = computed(() => {
+  const f = form.value
+  if (f.category === 'llm') return 'https://api.openai.com/v1'
+  if (f.category === 'asr' && f.providerType === 'aliyun') {
+    return '留空用默认：https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/asr'
+  }
+  return 'https://ocr.example.com'
+})
+
+// 阿里云 ASR 依赖 AppKey，缺了会在调用时才报错，提前在入口拦住
+function needsAppkey(f) {
+  return f.category === 'asr' && f.providerType === 'aliyun'
+}
+
+async function save(testAfter) {
   const f = form.value
   if (!f.name?.trim()) return showToast('请填写名称')
   if (!f.id && !f.apiKey) return showToast('新增供应商必须填写 API Key')
+  if (needsAppkey(f) && !f.appkey?.trim()) return showToast('阿里云 ASR 必须填写 AppKey')
 
   saving.value = true
+  let savedId = f.id
   try {
     if (f.id) {
       const payload = { ...f }
       if (!payload.apiKey) delete payload.apiKey
       if (!payload.secretKey) delete payload.secretKey
+      // 编辑时 AppKey 留空表示保持不变，避免误清已有配置
+      if (!payload.appkey) delete payload.appkey
       delete payload.id
       delete payload.category
-      await updateServiceProvider(f.id, payload)
+      const r = await updateServiceProvider(f.id, payload)
+      savedId = r?.id || f.id
     } else {
-      await createServiceProvider(f)
+      const r = await createServiceProvider(f)
+      savedId = r?.id
     }
     showSuccessToast('已保存')
     showForm.value = false
     await load()
+    // 保存并测试：列表加载完后立刻对新/旧供应商发起连通性测试，
+    // 结果直接显示在表格行内，用户不用再手动点「测试」
+    if (testAfter && savedId) {
+      await runTest({ id: savedId, name: f.name })
+    }
   } catch (e) {
     showToast(e.message || '保存失败')
   } finally {
@@ -607,6 +773,20 @@ onMounted(load)
   margin: 4px 0 0;
   font-size: 11px;
   color: #A0A8B8;
+}
+.form-item .hint-link {
+  color: #185FA5;
+  text-decoration: none;
+  margin-left: 4px;
+}
+.form-item .hint-link:hover {
+  text-decoration: underline;
+}
+
+.vision-sub {
+  font-size: 11px;
+  color: #7A8499;
+  margin-top: 2px;
 }
 
 .type-picker {

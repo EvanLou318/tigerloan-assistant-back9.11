@@ -13,7 +13,8 @@ export function fetchPermissions() {
 }
 
 export function fetchRoles() {
-  return request.get('/admin/roles')
+  // 角色简表（不含权限矩阵），供用户管理页的角色下拉使用
+  return request.get('/admin/role-options')
 }
 
 export function updateRolePermissions(roleCode, permissionCodes) {
