@@ -17,6 +17,11 @@ export function fetchRoles() {
   return request.get('/admin/role-options')
 }
 
+// 完整角色-权限矩阵（含 permissions 数组），权限矩阵管理页专用
+export function fetchRolesMatrix() {
+  return request.get('/admin/roles')
+}
+
 export function updateRolePermissions(roleCode, permissionCodes) {
   return request.put(`/admin/roles/${roleCode}/permissions`, { permissionCodes })
 }

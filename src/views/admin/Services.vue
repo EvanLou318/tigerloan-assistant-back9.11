@@ -130,7 +130,7 @@
 
         <div class="form-item">
           <label>API Key <i v-if="!form.id">*</i></label>
-          <input v-model="form.apiKey" type="password" :placeholder="form.id ? '留空则保持不变' : '服务商控制台获取'" />
+          <input v-model="form.apiKey" type="password" :placeholder="apiKeyPlaceholder" />
           <p class="hint" v-if="currentPreset?.keyHint">
             {{ currentPreset.keyHint }}
             <a v-if="currentPreset.consoleUrl" :href="currentPreset.consoleUrl" target="_blank" rel="noopener" class="hint-link">去获取 ↗</a>
@@ -143,8 +143,10 @@
         <!-- 阿里云语音：AppKey 是必需参数，与 Token 配套使用 -->
         <div class="form-item" v-if="form.category === 'asr' && form.providerType === 'aliyun'">
           <label>AppKey <i>*</i></label>
-          <input v-model="form.appkey" placeholder="阿里云智能语音交互项目 AppKey" />
-          <p class="hint">在「智能语音交互控制台 - 项目管理」中创建项目后获取，决定识别的语种与场景模型。</p>
+          <input v-model="form.appkey" :placeholder="appkeyPlaceholder" />
+          <p class="hint">
+            在「智能语音交互控制台 - 项目管理」中创建项目后获取，决定识别的语种与场景模型。<template v-if="form.id && maskedAppkey">当前已配置：{{ maskedAppkey }}。</template>
+          </p>
         </div>
 
         <div class="form-item" v-if="form.category !== 'llm'">
@@ -218,6 +220,9 @@ const saving = ref(false)
 const form = ref({})
 const formTypes = ref([])
 const formCategoryName = ref('')
+// 编辑时展示当前凭证掩码（不回填明文，仅提示「已配置了什么」）
+const maskedApiKey = ref('')
+const maskedAppkey = ref('')
 
 const TYPE_LABELS = {
   'openai-compatible': 'OpenAI 兼容',
@@ -350,6 +355,8 @@ function openCreate(g) {
   formTypes.value = g.providerTypes || ['custom']
   formCategoryName.value = g.name
   presetName.value = ''
+  maskedApiKey.value = ''
+  maskedAppkey.value = ''
   showForm.value = true
 }
 
@@ -369,6 +376,9 @@ function openEdit(p, g) {
     enabled: p.enabled,
     isDefault: p.isDefault,
   }
+  // 凭证不回填明文（安全），但把当前掩码展示在输入框提示里，让用户知道已配置了什么
+  maskedApiKey.value = p.apiKeyMasked || ''
+  maskedAppkey.value = p.appKeyMasked || ''
   formTypes.value = g.providerTypes || ['custom']
   formCategoryName.value = g.name
   presetName.value = ''
@@ -384,6 +394,17 @@ const baseUrlPlaceholder = computed(() => {
   return 'https://ocr.example.com'
 })
 
+// 编辑态凭证提示：展示当前掩码，留空即保持原值
+const apiKeyPlaceholder = computed(() => {
+  if (!form.value.id) return '服务商控制台获取'
+  return maskedApiKey.value ? `当前：${maskedApiKey.value}（留空保持不变）` : '未配置，填写后保存生效'
+})
+
+const appkeyPlaceholder = computed(() => {
+  if (!form.value.id) return '阿里云智能语音交互项目 AppKey'
+  return maskedAppkey.value ? `当前：${maskedAppkey.value}（留空保持不变）` : '阿里云智能语音交互项目 AppKey'
+})
+
 // 阿里云 ASR 依赖 AppKey，缺了会在调用时才报错，提前在入口拦住
 function needsAppkey(f) {
   return f.category === 'asr' && f.providerType === 'aliyun'
@@ -393,7 +414,8 @@ async function save(testAfter) {
   const f = form.value
   if (!f.name?.trim()) return showToast('请填写名称')
   if (!f.id && !f.apiKey) return showToast('新增供应商必须填写 API Key')
-  if (needsAppkey(f) && !f.appkey?.trim()) return showToast('阿里云 ASR 必须填写 AppKey')
+  // 新增必须填 AppKey；编辑留空 = 保持原值（原值在新增时已强制配置过）
+  if (needsAppkey(f) && !f.id && !f.appkey?.trim()) return showToast('阿里云 ASR 必须填写 AppKey')
 
   saving.value = true
   let savedId = f.id
@@ -406,6 +428,7 @@ async function save(testAfter) {
       if (!payload.appkey) delete payload.appkey
       delete payload.id
       delete payload.category
+      delete payload.hadAppkey
       const r = await updateServiceProvider(f.id, payload)
       savedId = r?.id || f.id
     } else {

@@ -69,7 +69,7 @@
           <tr><th>权限</th><th>权限码</th></tr>
         </thead>
         <tbody>
-          <tr v-for="c in catalog.filter(p => currentRole.permissions.includes(p.code))" :key="c.code">
+          <tr v-for="c in catalog.filter(p => (currentRole.permissions || []).includes(p.code))" :key="c.code">
             <td>{{ c.name }}</td>
             <td><code class="perm-code">{{ c.code }}</code></td>
           </tr>
@@ -128,7 +128,7 @@ import { ref, computed, onMounted } from 'vue'
 import { showSuccessToast, showToast } from 'vant'
 import {
   fetchPermissions,
-  fetchRoles,
+  fetchRolesMatrix,
   updateRolePermissions,
   fetchSettings,
   updateSettings,
@@ -193,7 +193,9 @@ async function loadAudit() {
 async function loadAll() {
   loadError.value = ''
   try {
-    const [cats, rs] = await Promise.all([fetchPermissions(), fetchRoles()])
+    // 权限矩阵页必须用含 permissions 的角色矩阵接口（/admin/roles）；
+    // role-options 是用户管理下拉的简表，缺 permissions 会导致矩阵渲染崩溃
+    const [cats, rs] = await Promise.all([fetchPermissions(), fetchRolesMatrix()])
     catalog.value = cats
     roles.value = rs
     currentRole.value = rs[0] || null
@@ -223,8 +225,9 @@ const groupedPermissions = computed(() => {
 
 const dirty = computed(() => {
   if (!currentRole.value) return false
-  const origin = [...currentRole.value.permissions].sort().join(',')
-  return origin !== [...draft.value].sort().join(',')
+  // 兜底：角色数据缺 permissions 字段时按空数组处理，避免渲染崩溃
+  const origin = [...(currentRole.value?.permissions || [])].sort().join(',')
+  return origin !== [...(draft.value || [])].sort().join(',')
 })
 
 function selectRole(r) {
