@@ -355,7 +355,14 @@ async function processVoice() {
     return
   }
   aiProcessing.value = true
-  const result = await extractScheduleApi(asrResult.value)
+  let result
+  try {
+    result = await extractScheduleApi(asrResult.value)
+  } catch (e) {
+    showToast(e?.message || '日程识别失败，请重试')
+    aiProcessing.value = false
+    return
+  }
   aiProcessing.value = false
   applyAiResult(result.data)
   ensureDefaults()
@@ -500,6 +507,11 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (recordTimer) clearInterval(recordTimer)
+  // 离开页面时释放麦克风，避免录音流保持活跃
+  if (recorder) {
+    recorder.cancel()
+    recorder = null
+  }
 })
 </script>
 

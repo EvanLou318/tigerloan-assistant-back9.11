@@ -22,6 +22,15 @@
       </div>
     </div>
 
+    <!-- 匹配失败 -->
+    <div v-else-if="matchError" class="loading-state">
+      <div class="loading-title">匹配请求失败，请稍后重试</div>
+      <div class="loading-error">{{ matchError }}</div>
+      <van-button round type="primary" style="margin-top: 20px" @click="runMatch">
+        重新匹配
+      </van-button>
+    </div>
+
     <!-- 匹配结果 -->
     <div v-else-if="matchResult" class="result-page">
       <!-- 结果概要 -->
@@ -160,6 +169,7 @@ const productStore = useProductStore()
 const loading = ref(true)
 const loadStep = ref(0)
 const matchResult = ref(null)
+const matchError = ref('')
 const showShareSheet = ref(false)
 
 const customer = computed(() => customerStore.getCustomerById(route.params.id))
@@ -180,18 +190,24 @@ async function runMatch() {
   loading.value = true
   loadStep.value = 0
   matchResult.value = null
+  matchError.value = ''
 
   const stepInterval = setInterval(() => {
     loadStep.value++
   }, 600)
 
-  const result = await matchProducts(customer.value, productStore.products)
-  clearInterval(stepInterval)
-  loadStep.value = 4
-  await new Promise(r => setTimeout(r, 500))
-
-  matchResult.value = result
-  loading.value = false
+  try {
+    const result = await matchProducts(customer.value, productStore.products)
+    loadStep.value = 4
+    await new Promise(r => setTimeout(r, 500))
+    matchResult.value = result
+  } catch (e) {
+    // 拦截器已提示过网络错误，这里兜底展示可重试的错误态
+    matchError.value = e?.response?.data?.message || e?.message || 'AI 服务暂时不可用'
+  } finally {
+    clearInterval(stepInterval)
+    loading.value = false
+  }
 }
 
 function rematch() {

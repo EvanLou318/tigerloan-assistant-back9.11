@@ -362,9 +362,15 @@ async function runSimulation() {
     ...customer.value,
     ...simData,
   }
-  const result = await matchProducts(simCustomer, productStore.products)
-  simResult.value = result
-  matching.value = false
+  try {
+    simResult.value = await matchProducts(simCustomer, productStore.products)
+  } catch (e) {
+    simResult.value = null
+    showToast(e?.message || '匹配服务异常，请稍后重试')
+  } finally {
+    matching.value = false
+  }
+  if (!simResult.value) return
 
   // 结果产生后：重播入场动画 + 自动平滑上滑到结果第一屏
   resultKey.value++
@@ -377,20 +383,28 @@ async function saveSimulation() {
     showToast('请输入推演名称')
     return
   }
+  if (!simResult.value) {
+    showToast('请先运行推演得到结果')
+    return
+  }
   const adjustments = {}
   for (const key in originalData) {
     if (simData[key] !== originalData[key]) {
       adjustments[key] = { old: originalData[key], new: simData[key] }
     }
   }
-  await customerStore.addSimulation({
-    customerId: customer.value.id,
-    name: saveName.value,
-    adjustments,
-    matchResult: simResult.value,
-  })
-  saveName.value = ''
-  showSuccessToast('推演记录已保存')
+  try {
+    await customerStore.addSimulation({
+      customerId: customer.value.id,
+      name: saveName.value,
+      adjustments,
+      matchResult: simResult.value,
+    })
+    saveName.value = ''
+    showSuccessToast('推演记录已保存')
+  } catch (e) {
+    showToast(e?.message || '保存失败，请重试')
+  }
 }
 
 onMounted(async () => {

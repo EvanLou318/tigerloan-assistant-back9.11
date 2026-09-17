@@ -196,7 +196,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
@@ -403,8 +403,12 @@ async function onFileChange(e) {
     }
     processingTitle.value = `${material.sourceName} 提取中...`
   } catch (err) {
-    showToast(err?.message || '材料识别失败，已切换为演示数据')
-    result = await ocrIdCard()
+    // 识别失败：提示并留在上传步骤，不注入与材料类型不符的演示数据（避免污染档案）
+    clearInterval(stepInterval)
+    showToast(err?.message || '材料识别失败，请更换文件重试')
+    step.value = 'upload'
+    e.target.value = ''
+    return
   }
 
   clearInterval(stepInterval)
@@ -489,11 +493,20 @@ async function extractVoiceData() {
   procStep.value = 0
   processingTitle.value = '大模型提取结构化信息...'
 
+  let extracted
   const stepInterval = setInterval(() => {
     procStep.value++
   }, 700)
 
-  const extracted = await extractFromVoice(asrResult.value?.text)
+  try {
+    extracted = await extractFromVoice(asrResult.value?.text)
+  } catch (e) {
+    clearInterval(stepInterval)
+    showToast(e?.message || '信息提取失败，请重试')
+    extracting.value = false
+    step.value = 'voice'
+    return
+  }
 
   clearInterval(stepInterval)
   procStep.value = 3
@@ -528,11 +541,20 @@ function resetVoice() {
   asrResult.value = null
   isRecording.value = false
   recordTime.value = 0
+  if (recordTimer) {
+    clearInterval(recordTimer)
+    recordTimer = null
+  }
   if (recorder) {
     recorder.cancel()
     recorder = null
   }
 }
+
+// 离开页面时释放麦克风，避免录音流保持活跃
+onBeforeUnmount(() => {
+  resetVoice()
+})
 
 // ==================== 合并确认 ====================
 const mergeFields = ref([])

@@ -179,8 +179,8 @@
               </span>
             </div>
             <div class="sim-result">
-              <span class="sim-approved">准入{{ sim.matchResult.approved.length }}</span>
-              <span class="sim-rejected">拒贷{{ sim.matchResult.rejected.length }}</span>
+              <span class="sim-approved">准入{{ sim.matchResult?.approved?.length ?? '--' }}</span>
+              <span class="sim-rejected">拒贷{{ sim.matchResult?.rejected?.length ?? '--' }}</span>
             </div>
           </div>
         </div>
@@ -639,7 +639,7 @@ function openEdit() {
   showEditPopup.value = true
 }
 
-function saveEdit() {
+async function saveEdit() {
   if (!editForm.name.trim()) {
     showToast('请输入客户姓名')
     return
@@ -651,8 +651,8 @@ function saveEdit() {
     return
   }
   savingEdit.value = true
-  setTimeout(() => {
-    store.updateCustomer(customer.value.id, {
+  try {
+    await store.updateCustomer(customer.value.id, {
       name: editForm.name.trim(),
       phone: editForm.phone,
       gender: editForm.gender || '男',
@@ -676,10 +676,14 @@ function saveEdit() {
       expectedAmount: toNum(editForm.expectedAmount),
       source: editForm.source || 'other',
     })
-    savingEdit.value = false
     showEditPopup.value = false
     showSuccessToast('已保存')
-  }, 400)
+  } catch (e) {
+    // 失败保持弹窗，用户可修改后重试（网络错误拦截器已提示）
+    showToast(e?.message || '保存失败，请重试')
+  } finally {
+    savingEdit.value = false
+  }
 }
 
 /* ===== 材料编辑 / 删除 ===== */
@@ -692,15 +696,19 @@ function openMatTypeEdit() {
   showMatTypeEdit.value = true
 }
 
-function confirmMatType() {
+async function confirmMatType() {
   if (!matTypeDraft.value) {
     showToast('请选择材料类型')
     return
   }
-  store.updateMaterialType(customer.value.id, activeMaterial.value.id, matTypeDraft.value)
-  showMatTypeEdit.value = false
-  showMaterialViewer.value = false
-  showSuccessToast('材料类型已更正')
+  try {
+    await store.updateMaterialType(customer.value.id, activeMaterial.value.id, matTypeDraft.value)
+    showMatTypeEdit.value = false
+    showMaterialViewer.value = false
+    showSuccessToast('材料类型已更正')
+  } catch (e) {
+    showToast(e?.message || '更新失败，请重试')
+  }
 }
 
 function confirmRemoveMaterial() {
@@ -710,10 +718,14 @@ function confirmRemoveMaterial() {
     confirmButtonText: '删除',
     confirmButtonColor: '#F04438',
   })
-    .then(() => {
-      store.removeMaterial(customer.value.id, activeMaterial.value.id)
-      showMaterialViewer.value = false
-      showSuccessToast('材料已删除')
+    .then(async () => {
+      try {
+        await store.removeMaterial(customer.value.id, activeMaterial.value.id)
+        showMaterialViewer.value = false
+        showSuccessToast('材料已删除')
+      } catch (e) {
+        showToast(e?.message || '删除失败，请重试')
+      }
     })
     .catch(() => {})
 }

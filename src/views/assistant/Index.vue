@@ -400,53 +400,58 @@ function handleQueryMatch(e) {
 }
 
 /* ============ 确认/取消 ============ */
-function confirmAction(msg) {
+async function confirmAction(msg) {
   const { type, payload } = msg.action
-  if (type === 'customer_create') {
-    const c = customerStore.addCustomer({
-      name: payload.name,
-      phone: payload.phone,
-      source: 'ai',
-      remark: '由 AI 助理创建',
-    })
-    msg.link = { label: '查看新档案', to: `/customers/${c.id}` }
-  } else if (type === 'customer_update') {
-    customerStore.mergeCustomerFields(payload.id, { [payload.field]: payload.value })
-    const c = customerStore.getCustomerById(payload.id)
-    msg.link = { label: '查看客户档案', to: `/customers/${payload.id}` }
-    if (c) msg.text = `已更新客户「${c.name}」的档案字段。`
-  } else if (type === 'product_create') {
-    const p = productStore.addProduct({
-      productName: payload.productName || '未命名产品',
-      institution: payload.institution || '待补充',
-      minRate: Number(payload.minRate) || 0,
-      maxRate: Number(payload.minRate ? payload.minRate + 2 : 5) || 5,
-      minAmount: 1,
-      maxAmount: Number(payload.maxAmount) || 30,
-      loanTerm: '12-36个月',
-      repaymentMethod: '等额本息',
-      conditions: '由 AI 助理录入，待补充完整准入条件',
-      source: 'ai',
-    })
-    msg.link = { label: '查看产品', to: `/products/${p.id}` }
-  } else if (type === 'schedule_create') {
-    const s = scheduleStore.addSchedule({
-      title: payload.title,
-      startTime: payload.startTime,
-      endTime: payload.endTime,
-      reminderTime: new Date(new Date(payload.startTime).getTime() - 15 * 60000).toISOString(),
-      priority: payload.priority || 'P1',
-      type: payload.type || 'task',
-      location: payload.location || '',
-      remark: `AI 助理创建：${payload.rawText || payload.remark || ''}`,
-      customerId: payload.customerId || null,
-      customerName: payload.customerName || '',
-      source: 'ai',
-    })
-    msg.link = { label: '查看日程', to: '/schedules' }
+  try {
+    if (type === 'customer_create') {
+      const c = await customerStore.addCustomer({
+        name: payload.name,
+        phone: payload.phone,
+        source: 'ai',
+        remark: '由 AI 助理创建',
+      })
+      msg.link = { label: '查看新档案', to: `/customers/${c.id}` }
+    } else if (type === 'customer_update') {
+      await customerStore.mergeCustomerFields(payload.id, { [payload.field]: payload.value })
+      const c = customerStore.getCustomerById(payload.id)
+      msg.link = { label: '查看客户档案', to: `/customers/${payload.id}` }
+      if (c) msg.text = `已更新客户「${c.name}」的档案字段。`
+    } else if (type === 'product_create') {
+      const p = await productStore.addProduct({
+        productName: payload.productName || '未命名产品',
+        institution: payload.institution || '待补充',
+        minRate: Number(payload.minRate) || 0,
+        maxRate: Number(payload.minRate ? payload.minRate + 2 : 5) || 5,
+        minAmount: 1,
+        maxAmount: Number(payload.maxAmount) || 30,
+        loanTerm: '12-36个月',
+        repaymentMethod: '等额本息',
+        conditions: '由 AI 助理录入，待补充完整准入条件',
+        source: 'ai',
+      })
+      msg.link = { label: '查看产品', to: `/products/${p.id}` }
+    } else if (type === 'schedule_create') {
+      await scheduleStore.addSchedule({
+        title: payload.title,
+        startTime: payload.startTime,
+        endTime: payload.endTime,
+        reminderTime: new Date(new Date(payload.startTime).getTime() - 15 * 60000).toISOString(),
+        priority: payload.priority || 'P1',
+        type: payload.type || 'task',
+        location: payload.location || '',
+        remark: `AI 助理创建：${payload.rawText || payload.remark || ''}`,
+        customerId: payload.customerId || null,
+        customerName: payload.customerName || '',
+        source: 'ai',
+      })
+      msg.link = { label: '查看日程', to: '/schedules' }
+    }
+    msg.pending = false
+    msg.done = true
+  } catch (e) {
+    // 执行失败：保持确认按钮可再次点击（重试），不假标"已执行"
+    msg.text = `操作执行失败：${e?.message || '网络异常'}，可点击下方按钮重试。`
   }
-  msg.pending = false
-  msg.done = true
   scrollToBottom()
 }
 

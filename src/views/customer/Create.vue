@@ -267,7 +267,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue'
+import { reactive, ref, computed, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { showSuccessToast, showToast } from 'vant'
 import { useCustomerStore } from '../../stores/customer'
@@ -376,7 +376,14 @@ async function stopRecord() {
   voiceStep.value = 'analyzing'
 
   // 2. 大模型自动识别资料类型并提取字段
-  const result = await extractCustomerFromVoice(asrRes.text)
+  let result
+  try {
+    result = await extractCustomerFromVoice(asrRes.text)
+  } catch (e) {
+    showToast(e?.message || '信息提取失败，请重试')
+    voiceStep.value = 'idle'
+    return
+  }
   recognizedTypes.value = result.recognizedTypes || []
   aiSummary.value = result.summary || ''
   aiConfidence.value = {}
@@ -415,6 +422,11 @@ function resetVoice() {
 }
 
 const confOf = (key) => aiConfidence.value[key] ?? 0.9
+
+// 离开页面时释放麦克风，避免录音流保持活跃
+onBeforeUnmount(() => {
+  resetVoice()
+})
 
 // 仅文本类字段（非数字/选择器）支持语音回填
 const isVoiceable = (f) => f.type !== 'source' && !['number', 'digit'].includes(f.inputType || '')

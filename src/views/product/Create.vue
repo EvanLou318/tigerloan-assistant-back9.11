@@ -283,7 +283,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
 import { useProductStore } from '../../stores/product'
@@ -428,6 +428,15 @@ onMounted(async () => {
       showToast('产品不存在或已被删除')
       router.back()
     }
+  }
+})
+
+// 离开页面时释放麦克风，避免录音流保持活跃
+onBeforeUnmount(() => {
+  if (recordTimer) clearInterval(recordTimer)
+  if (recorder) {
+    recorder.cancel()
+    recorder = null
   }
 })
 
