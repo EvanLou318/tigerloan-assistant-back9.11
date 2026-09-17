@@ -44,3 +44,8 @@ Thumbs.db
 /qa_*.png
 /qa_*.txt
 /live_check.js
+build_log.txt
+scripts/bfix_out.txt
+scripts/_diag_popup.py
+scripts/_dump_voice_ui.py
+scripts/_dump_voice_ui2.py
