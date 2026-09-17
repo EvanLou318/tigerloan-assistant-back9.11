@@ -22,6 +22,13 @@ const routes = [
     meta: { title: '修改密码', requiresAuth: true },
   },
   {
+    // 管理后台独立登录页（不复用移动端登录页）
+    path: '/admin/login',
+    name: 'AdminLogin',
+    component: () => import('../views/admin/AdminLogin.vue'),
+    meta: { title: '管理后台登录' },
+  },
+  {
     path: '/home',
     name: 'Home',
     component: () => import('../views/home/Index.vue'),
@@ -143,17 +150,29 @@ function isAdminUser() {
   return perms.includes('admin.dashboard.view')
 }
 
+export { isAdminUser }
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
-  if (to.meta.requiresAuth && !token) {
-    next({ path: '/login', query: to.path === '/login' ? {} : { redirect: to.fullPath } })
-  } else if (to.path === '/login' && token) {
-    next(safeRedirect(to.query.redirect) || '/home')
-  } else if (to.meta.admin && !isAdminUser()) {
-    next('/home')
-  } else {
-    next()
+  // 后台独立登录页：已登录的管理员直进后台
+  if (to.path === '/admin/login') {
+    if (token && isAdminUser()) return next('/admin/dashboard')
+    return next()
   }
+  if (to.meta.requiresAuth && !token) {
+    // 后台路由未登录 → 后台登录页；其余 → 移动端登录页（均带 redirect 回跳）
+    if (to.meta.admin) {
+      return next({ path: '/admin/login', query: to.fullPath === '/admin' ? {} : { redirect: to.fullPath } })
+    }
+    return next({ path: '/login', query: to.fullPath === '/login' ? {} : { redirect: to.fullPath } })
+  }
+  if (to.path === '/login' && token) {
+    return next(safeRedirect(to.query.redirect) || '/home')
+  }
+  if (to.meta.admin && !isAdminUser()) {
+    return next('/home')
+  }
+  next()
 })
 
 // 维护路径栈判断前进/返回（hash 模式下 history.state 不可靠，用自有栈）

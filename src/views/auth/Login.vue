@@ -86,7 +86,7 @@
 
         <div class="form-footer">
           <span class="footer-text">仅限授权贷款经理使用</span>
-          <span class="admin-link" @click="goAdmin">管理后台入口 →</span>
+          <span class="admin-link" @click="router.push('/admin/login')">管理后台入口 →</span>
         </div>
       </div>
     </div>
@@ -145,18 +145,6 @@ const passwordRules = [
     message: '密码6-20位，不能为纯数字或纯字母',
   },
 ]
-
-// 管理后台入口：已登录直接进；未登录则记录回跳目标并提示（登录成功后经 redirect 自动进入）
-function goAdmin() {
-  if (localStorage.getItem('token')) {
-    router.push('/admin')
-    return
-  }
-  if (route.query.redirect !== '/admin') {
-    router.replace({ path: '/login', query: { redirect: '/admin' } })
-  }
-  showToast('请先登录，登录后将自动进入管理后台')
-}
 
 async function onSubmit() {
   loading.value = true
