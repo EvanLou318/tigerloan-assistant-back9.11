@@ -7,6 +7,7 @@
 
 import { db } from '../../db.js'
 import { config } from '../../config.js'
+import { decryptSecret } from '../../secureStore.js'
 
 // ---------- 分类目录（管理后台与前端共用语义） ----------
 export const SERVICE_CATEGORIES = [
@@ -37,16 +38,18 @@ export function isValidCategory(c) {
 }
 
 function rowToProvider(r) {
+  const extra = safeParse(r.extra)
   return {
     id: r.id,
     category: r.category,
     name: r.name,
     providerType: r.provider_type,
     baseUrl: r.base_url,
-    apiKey: r.api_key,
-    secretKey: r.secret_key,
+    // 凭证落库为密文（enc:v1:），调用时解密
+    apiKey: decryptSecret(r.api_key),
+    secretKey: decryptSecret(r.secret_key),
     model: r.model,
-    extra: safeParse(r.extra),
+    extra: { ...extra, ...(extra.appkey ? { appkey: decryptSecret(extra.appkey) } : {}) },
     enabled: !!r.enabled,
     isDefault: !!r.is_default,
     remark: r.remark,
@@ -141,11 +144,6 @@ export function getCategoryRuntime(category) {
 // ---------- 真实调用：OpenAI 兼容协议 LLM ----------
 // real.js 各 LLM 能力统一走这里；未配置时抛出明确错误。
 async function chatCompletion(messages, options = {}) {
-  if (String(options.model || '').includes('vision') || messages.some((m) => Array.isArray(m.content))) {
-    const u = messages.find((m) => Array.isArray(m.content))
-    const img = u?.content?.find((b) => b.type === 'image_url')
-    console.log('[vision-debug] model=%s urlLen=%s urlType=%s', options.model, img?.image_url?.url?.length, typeof img?.image_url?.url)
-  }
   const { provider } = getCategoryRuntime('llm')
   if (!provider) {
     throw new Error('大模型服务未配置：请在管理后台「三方服务」中添加并启用 LLM 供应商')

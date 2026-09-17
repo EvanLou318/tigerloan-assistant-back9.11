@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS service_providers (
   name        TEXT NOT NULL,              -- 展示名，如"通义千问"
   provider_type TEXT NOT NULL,            -- 协议/厂商类型，如 openai-compatible | tencent | aliyun | xfyun | custom
   base_url    TEXT NOT NULL DEFAULT '',
-  api_key     TEXT NOT NULL DEFAULT '',   -- 存储明文，接口输出时脱敏
+  api_key     TEXT NOT NULL DEFAULT '',   -- AES-GCM 密文（enc:v1: 前缀，见 secureStore.js），出参脱敏
   secret_key  TEXT NOT NULL DEFAULT '',   -- 部分厂商需要（腾讯云等）
   model       TEXT NOT NULL DEFAULT '',   -- LLM 模型名
   extra       TEXT NOT NULL DEFAULT '{}', -- 预留扩展参数 JSON
@@ -214,6 +214,8 @@ function ensureColumn(table, column, ddl) {
 }
 ensureColumn('products', 'rate_type', "rate_type TEXT NOT NULL DEFAULT 'annual'")
 ensureColumn('users', 'avatar', "avatar TEXT NOT NULL DEFAULT ''")
+// token 失效机制：改密/改角色时 +1，旧 token 立即失效（见 middleware/auth.js）
+ensureColumn('users', 'token_version', 'token_version INTEGER NOT NULL DEFAULT 0')
 
 // ---------- 行 → 前端对象 映射（snake_case → camelCase） ----------
 

@@ -95,10 +95,14 @@ const { userInfo } = storeToRefs(authStore)
 const showHelp = ref(false)
 const fileInput = ref(null)
 
-// 头像地址：优先本地存储，其次走相对路径（同域静态服务 /uploads）
+// 头像地址：优先本地存储，其次走相对路径（同域静态服务 /uploads）。
+// /uploads 已挂鉴权，<img> 无法携带请求头，用 ?token= 查询参数授权
 const avatarUrl = computed(() => {
   const a = userInfo?.value?.avatar || ''
-  return a || ''
+  if (!a) return ''
+  const token = localStorage.getItem('token') || ''
+  const sep = a.includes('?') ? '&' : '?'
+  return token ? `${a}${sep}token=${encodeURIComponent(token)}` : a
 })
 
 const uploading = ref(false)

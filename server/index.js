@@ -14,7 +14,7 @@ import { config } from './config.js'
 import './db.js'
 import { seedIfEmpty } from './seed.js'
 import { ensureRBACSeed } from './rbac.js'
-import { authRequired } from './middleware/auth.js'
+import { authRequired, resolveUser } from './middleware/auth.js'
 import { fail } from './utils.js'
 import authRoutes from './routes/auth.js'
 import productRoutes from './routes/products.js'
@@ -40,6 +40,8 @@ app.use(express.json({ limit: '20mb' }))
 
 // 上传文件静态服务
 // 安全策略：
+//   0) 鉴权 —— 客户材料属敏感 PII，拒绝未授权直链。<img> 等无法携带请求头的
+//      场景允许 ?token= 查询参数（前端只在头像处使用，见 resolveUser）
 //   1) nosniff  —— 禁止浏览器嗅探 MIME，避免伪装成图片的文件被按脚本执行
 //   2) CSP sandbox —— 万一混入 html/svg，也禁止其执行脚本、访问同源 Cookie
 //   3) 非图片类（PDF/音频）强制下载语义，不在浏览器内联渲染
@@ -49,6 +51,8 @@ const INLINE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.
 app.use(
   '/uploads',
   (req, res, next) => {
+    const user = resolveUser(req)
+    if (!user) return fail(res, 401, '未授权的文件访问')
     res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; sandbox")
     const ext = path.extname(req.path || '').toLowerCase()
@@ -93,8 +97,14 @@ app.use('/api', (req, res) => fail(res, 404, '接口不存在'))
 
 app.use((err, req, res, next) => {
   if (res.headersSent) return next(err)
+  const status = err.status || 500
+  // 4xx 业务错误（BizError）与显式标记 expose 的错误透传友好提示；
+  // 5xx 一律固定文案，避免把 SQL/文件系统/fetch 等内部细节泄露给客户端
+  if (status < 500 || err.expose) {
+    return fail(res, status, err.message || '请求失败')
+  }
   console.error('[server]', err)
-  fail(res, err.status || 500, err.message || '服务器内部错误')
+  fail(res, 500, '服务器内部错误，请稍后重试')
 })
 
 app.listen(config.port, '0.0.0.0', () => {

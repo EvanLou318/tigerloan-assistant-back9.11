@@ -181,7 +181,14 @@ function scrollToBottom() {
 }
 
 function renderText(text) {
-  return (text || '').replace(/\n/g, '<br/>')
+  // 先 HTML 转义再换行替换：AI/用户文本经 v-html 渲染前必须去武器化，防 XSS
+  const escaped = String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+  return escaped.replace(/\n/g, '<br/>')
 }
 
 function fmtAmt(val) {

@@ -219,8 +219,13 @@ router.use((err, req, res, next) => {
     }
     return fail(res, 400, `文件上传失败：${err.message}`)
   }
+  const status = err.status || 500
+  if (status < 500 || err.expose) {
+    // 4xx 业务错误与供应商可读错误（凭证失效等，已翻译成用户可操作提示）
+    return fail(res, status, err.message || 'AI 服务处理失败')
+  }
   console.error('[ai]', err)
-  fail(res, 500, err.message || 'AI 服务处理失败')
+  fail(res, 500, 'AI 服务处理失败，请稍后重试')
 })
 
 export default router

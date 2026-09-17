@@ -37,19 +37,52 @@ const avatarUpload = multer({
   },
 })
 
+// ---------- 登录限流（内存计数：同 手机号+IP 10 分钟内最多 5 次失败） ----------
+const LOGIN_WINDOW = 10 * 60 * 1000
+const LOGIN_MAX_FAILS = 5
+const loginFails = new Map()
+
+function loginBlocked(key) {
+  const rec = loginFails.get(key)
+  return rec && rec.count >= LOGIN_MAX_FAILS && Date.now() - rec.first < LOGIN_WINDOW
+}
+
+function recordLoginFail(key) {
+  const now = Date.now()
+  const rec = loginFails.get(key)
+  if (rec && now - rec.first < LOGIN_WINDOW) {
+    rec.count += 1
+  } else {
+    loginFails.set(key, { first: now, count: 1 })
+  }
+  // 防止 Map 无限增长：过期记录超阈值时整体清理一次
+  if (loginFails.size > 500) {
+    for (const [k, v] of loginFails) {
+      if (now - v.first >= LOGIN_WINDOW) loginFails.delete(k)
+    }
+  }
+}
+
 // POST /api/auth/login  登录
 router.post('/login', (req, res) => {
   const { phone, password } = req.body || {}
   if (!phone || !password) return fail(res, 400, '请输入手机号和密码')
 
-  const user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone)
-  if (!user) return fail(res, 400, '账号不存在')
-  if (!bcrypt.compareSync(password, user.password_hash)) {
-    return fail(res, 400, '密码错误，请重试')
+  const failKey = `${phone}|${req.socket?.remoteAddress || ''}`
+  if (loginBlocked(failKey)) {
+    return fail(res, 429, '尝试次数过多，请 10 分钟后再试')
   }
 
+  // 「账号不存在」与「密码错误」统一文案：避免泄露手机号是否已注册
+  const user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone)
+  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    recordLoginFail(failKey)
+    return fail(res, 400, '手机号或密码错误')
+  }
+  loginFails.delete(failKey)
+
   const token = jwt.sign(
-    { id: user.id, phone: user.phone, name: user.name, role: user.role },
+    { id: user.id, phone: user.phone, name: user.name, role: user.role, tv: user.token_version || 0 },
     config.jwtSecret,
     { expiresIn: config.jwtExpires }
   )
@@ -119,9 +152,9 @@ router.post('/change-password', authRequired, (req, res) => {
     return fail(res, 400, '原密码错误')
   }
 
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+  db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?')
     .run(bcrypt.hashSync(newPassword, 10), user.id)
-  ok(res, { changed: true })
+  ok(res, { changed: true, relogin: true })
 })
 
 // GET /api/auth/me  当前用户信息（需登录）

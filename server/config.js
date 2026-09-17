@@ -6,11 +6,12 @@ export const config = {
   // 服务端口（前端 vite proxy 指向这里）
   port: Number(process.env.PORT || 3001),
 
-  // JWT 密钥：生产环境务必通过环境变量 JWT_SECRET 覆盖
-  // 注意：这里刻意不使用环境变量覆盖。部署环境（多实例沙箱）中不同实例可能注入不同的
-  // 环境变量，会导致「A 实例签发的 token 在 B 实例校验失败 → 登录即掉线」。固定密钥可保证
-  // 任意实例签发的 token 都能被校验通过。如需更换密钥，直接修改本常量即可。
-  jwtSecret: 'loan-assistant-dev-secret-do-not-use-in-prod',
+  // JWT 密钥：优先环境变量 JWT_SECRET（生产必配），未注入时回退到内置常量。
+  // 注意：部署环境（多实例沙箱）中不同实例可能注入不同的环境变量，会导致
+  // 「A 实例签发的 token 在 B 实例校验失败 → 登录即掉线」。要么所有实例注入同一
+  // JWT_SECRET，要么都不注入（统一回退到本常量）。三方凭证加解密密钥同样由它派生，
+  // 更换后已落库的加密凭证需要重新配置（见 secureStore.js）。
+  jwtSecret: process.env.JWT_SECRET || 'loan-assistant-dev-secret-do-not-use-in-prod',
   jwtExpires: process.env.JWT_EXPIRES || '7d',
 
   // AI Provider：auto（默认，按管理后台三方服务配置逐分类切换）| mock | real

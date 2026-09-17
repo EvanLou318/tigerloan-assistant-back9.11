@@ -5,6 +5,8 @@ import { loginApi } from '../api/auth'
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
   const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || 'null'))
+  // 一次性清理历史版本明文落盘的密码（安全策略升级残留）
+  localStorage.removeItem('savedPassword')
 
   async function login(phone, password, remember) {
     // 真实登录：调用后端接口换取 JWT
@@ -13,12 +15,11 @@ export const useAuthStore = defineStore('auth', () => {
     userInfo.value = data.user
     localStorage.setItem('token', token.value)
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+    // 「记住登录」只记住手机号：密码明文落盘在 XSS/设备借用场景下会直接泄露
     if (remember) {
       localStorage.setItem('savedPhone', phone)
-      localStorage.setItem('savedPassword', password)
     } else {
       localStorage.removeItem('savedPhone')
-      localStorage.removeItem('savedPassword')
     }
     return true
   }
@@ -30,11 +31,8 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('userInfo')
   }
 
-  function getSavedCredentials() {
-    return {
-      phone: localStorage.getItem('savedPhone') || '',
-      password: localStorage.getItem('savedPassword') || '',
-    }
+  function getSavedPhone() {
+    return localStorage.getItem('savedPhone') || ''
   }
 
   // 更新头像字段并持久化（不触碰 token）
@@ -44,5 +42,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
   }
 
-  return { token, userInfo, login, logout, getSavedCredentials, setAvatar }
+  return { token, userInfo, login, logout, getSavedPhone, setAvatar }
 })

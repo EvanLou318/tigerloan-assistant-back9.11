@@ -193,7 +193,8 @@ router.patch('/users/:id/role', requirePerm('admin.users.manage'), wrap(async (r
   ) {
     throw new BizError('至少保留一个管理员账号')
   }
-  db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, req.params.id)
+  // 角色变更即时生效：token_version +1 让该用户旧 token 立即失效，需重新登录
+  db.prepare('UPDATE users SET role = ?, token_version = token_version + 1 WHERE id = ?').run(role, req.params.id)
   writeAudit(req, 'user.role_change', `${user.name}（ID ${user.id}）`, `角色 ${user.role} → ${role}`)
   ok(res, { id: Number(req.params.id), role })
 }))
@@ -203,7 +204,7 @@ router.patch('/users/:id/password', requirePerm('admin.users.manage'), (req, res
   if (!password || password.length < 6) throw new BizError('密码至少 6 位')
   const user = db.prepare('SELECT id, name FROM users WHERE id = ?').get(req.params.id)
   if (!user) throw new BizError('用户不存在', 404)
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(password, 10), req.params.id)
+  db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?').run(bcrypt.hashSync(password, 10), req.params.id)
   writeAudit(req, 'user.password_reset', `${user.name}（ID ${user.id}）`)
   ok(res, { id: Number(req.params.id) })
 })

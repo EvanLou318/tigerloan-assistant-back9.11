@@ -122,11 +122,10 @@ const form = reactive({
   remember: false,
 })
 
-// 自动填充记住的密码
-const saved = authStore.getSavedCredentials()
-if (saved.phone) {
-  form.phone = saved.phone
-  form.password = saved.password
+// 自动填充记住的手机号（安全策略：不再保存/回填密码明文）
+const savedPhone = authStore.getSavedPhone()
+if (savedPhone) {
+  form.phone = savedPhone
   form.remember = true
 }
 

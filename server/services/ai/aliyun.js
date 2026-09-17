@@ -66,6 +66,15 @@ function isExpiredToken(status) {
   return status === 40010002 || status === 40010003
 }
 
+// 可向客户端透传的错误：配置/凭证/音频格式等用户可自行处理的问题。
+// 其余 5xx 统一被全局错误处理器替换为固定文案（见 index.js）。
+function exposedError(message) {
+  const e = new Error(message)
+  e.expose = true
+  e.status = 502
+  return e
+}
+
 /**
  * 调用阿里云一句话识别。
  * @param {object} opts
@@ -78,10 +87,10 @@ function isExpiredToken(status) {
  * @returns {{ text, taskId, status, message }}
  */
 export async function recognize({ token, appkey, audio, format, sampleRate = 16000, endpoint }) {
-  if (!token) throw new Error('阿里云 ASR 未配置 AccessToken')
-  if (!appkey) throw new Error('阿里云 ASR 未配置 AppKey')
+  if (!token) throw exposedError('阿里云 ASR 未配置 AccessToken')
+  if (!appkey) throw exposedError('阿里云 ASR 未配置 AppKey')
   if (!SUPPORTED_FORMATS.has(format)) {
-    throw new Error(`阿里云 ASR 不支持的音频格式：${format}（支持 ${[...SUPPORTED_FORMATS].join('/')}）`)
+    throw exposedError(`阿里云 ASR 不支持的音频格式：${format}（支持 ${[...SUPPORTED_FORMATS].join('/')}）`)
   }
   const rate = normalizeSampleRate(sampleRate)
 
@@ -114,9 +123,17 @@ export async function recognize({ token, appkey, audio, format, sampleRate = 160
     // 而是统一包成 40000001 + message "Meta:ACCESS_DENIED:The token '...' is invalid!/expired"。
     // 因此必须同时看 message 文本，否则过期会被误报成「请求参数有误」。
     if (isExpiredToken(status) || /ACCESS_DENIED/i.test(rawMsg) || /token.{0,40}(invalid|expired|denied)/i.test(rawMsg)) {
-      throw new Error(`阿里云 AccessToken 已失效或被拒绝（${status}）。控制台临时 Token 有效期约 24 小时，请到智能语音交互控制台重新生成，并在「三方服务-语音识别」中更新；长期方案请改用 AccessKey 自动刷新`)
+      throw exposedError(`阿里云 AccessToken 已失效或被拒绝（${status}）。控制台临时 Token 有效期约 24 小时，请到智能语音交互控制台重新生成，并在「三方服务-语音识别」中更新；长期方案请改用 AccessKey 自动刷新`)
     }
-    throw new Error(`阿里云 ASR 识别失败（${status}）：${detail}`)
+    // 已知状态码用本地翻译表（不含上游原始报文），可安全透传；
+    // 未知状态码的 rawMsg 可能包含内部信息，走统一 5xx 固定文案
+    const known = Boolean(STATUS_TEXT[status])
+    const e = new Error(`阿里云 ASR 识别失败（${status}）：${known ? detail : '服务暂时不可用，请稍后重试'}`)
+    if (known) {
+      e.expose = true
+      e.status = 502
+    }
+    throw e
   }
 
   return {
